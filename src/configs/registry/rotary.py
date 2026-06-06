@@ -1,7 +1,7 @@
 import torch
 
 from configs.base import Config
-from kops.rope import kernel as rope_kernel
+from kops.registry.rope import kernel as rope_kernel
 
 
 class Rotary(Config):

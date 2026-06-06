@@ -10,7 +10,7 @@ from typing import Any
 from torch.utils.cpp_extension import load_inline
 
 _DECL = "std::tuple<at::Tensor, at::Tensor> rope(at::Tensor q, at::Tensor k, at::Tensor cos, at::Tensor sin);"
-_SRC = files("kops").joinpath("rope.cu").read_text()
+_SRC = files("kops.registry").joinpath("rope.cu").read_text()
 _mod: Any = None
 
 
