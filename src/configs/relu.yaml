@@ -1,8 +1,0 @@
-repo: kernels-community/relu
-version: 1
-dtype: float32
-inputs:
-  - [4096, 4096]
-baseline: torch.relu   # native eager reference
-op: relu               # kernel attribute to call
-out_arg: true          # kernel writes into a preallocated leading `out` tensor

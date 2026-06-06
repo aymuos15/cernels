@@ -1,8 +1,0 @@
-repo: kernels-community/activation
-version: 1
-dtype: float16
-inputs:
-  - [4096, 4096]
-baseline: torch.nn.functional.gelu
-op: gelu_fast
-out_arg: true
