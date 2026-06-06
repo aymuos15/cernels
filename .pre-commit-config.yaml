@@ -17,3 +17,8 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      - id: clang-format
+        name: clang-format
+        entry: uv run --no-sync clang-format -i
+        language: system
+        files: \.(cu|cuh|cpp|cc|h|hpp)$
