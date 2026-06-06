@@ -1,108 +1,68 @@
-"""Benchmark a kernel from a Python config: eager vs compile vs kernel (+ custom).
+"""Benchmark an op from a config: eager vs compile vs lib (production op) vs custom.
 
 Usage: uv run python -m benchmark.main <config>   # <config> = a Config.name in src/configs/
-Writes analysis/<config>/benchmark.{json,log}.
+Writes analysis/<host>/<config>.{json,log}. Works for Hub kernels and non-Hub ops
+(e.g. torchvision) alike — the config just provides eager/lib/custom callables.
 """
 
 import sys
-from typing import Any
 
 import torch
 from huggingface_hub.utils import disable_progress_bars
-from kernels.benchmark import Benchmark
-from kernels.cli.benchmark import _print_results_table, run_benchmark_class
+from kernels.cli.benchmark import _print_results_table, get_kernel_sha_from_build_name
 from tqdm import tqdm
 
-from benchmark.monitor import capture, save
-from configs.base import Config
+from benchmark.monitor import capture, stats, time_ms
+from benchmark.save import save
 from configs.registry import CONFIGS
 
-
-def _bar(method):
-    """Advance a per-workload tqdm on each call. Writes to the real stderr (sys.__stderr__)
-    so it shows live even while monitor.capture() redirects sys.stderr for the log."""
-    label = method.__name__.split("benchmark_")[-1]
-
-    def wrapper(self):
-        if getattr(self, "_bar", None) is None:
-            if KernelBenchmark.active is not None:
-                KernelBenchmark.active.close()  # close the previous workload's bar
-            self._bar = KernelBenchmark.active = tqdm(desc=label, file=sys.__stderr__)
-        method(self)
-        self._bar.update(1)
-
-    return wrapper
+DEVICE = "cuda"
+WARMUP = 10
+ITERATIONS = 100
 
 
-class KernelBenchmark(Benchmark):
-    seed = 42
-    iterations = 100
-    warmup = 10
-    is_local = False
-    cfg: Config  # a Config instance, injected per run
-    active: "tqdm | None" = None  # the currently-running workload's bar
-
-    def setup(self):
-        self.inputs = self.cfg.inputs(self.device, self.cfg.dtype)
-        self.compiled = torch.compile(self.cfg.baseline)
-        self.buf = torch.empty_like(self.inputs[0]) if self.cfg.out_arg else None
-
-    @staticmethod
-    def first(out):
-        """Multi-output ops -> first tensor, for the correctness check."""
-        return out[0] if isinstance(out, (tuple, list)) else out
-
-    @_bar
-    def benchmark_eager(self):
-        self.out = self.first(self.cfg.baseline(*self.inputs))
-
-    @_bar
-    def benchmark_compile(self):
-        self.out = self.first(self.compiled(*self.inputs))
-
-    @_bar
-    def benchmark_kernel(self):
-        fn = getattr(self.kernel, self.cfg.op)
-        if self.buf is not None:
-            fn(self.buf, *self.inputs)
-            self.out = self.buf
-        else:
-            self.out = self.first(fn(*self.inputs))
-
-    def verify_kernel(self):
-        return self.first(self.cfg.baseline(*self.inputs))
+def _first(out):
+    """Multi-output ops -> first tensor, for the correctness check."""
+    return out[0] if isinstance(out, (tuple, list)) else out
 
 
-# Injected only when a config sets `custom` (a callable, e.g. from src/kops/).
-@_bar
-def _benchmark_custom(self):
-    self.out = self.first(self.cfg.custom(*self.inputs))
+def run(cfg):
+    inputs = cfg.inputs(DEVICE, cfg.dtype)
+    workloads = {"eager": cfg.baseline}
+    if cfg.use_compile:
+        workloads["compile"] = torch.compile(cfg.baseline)
+    if cfg.lib is not None:  # ops whose eager reference *is* the production op set no separate lib
+        workloads["lib"] = cfg.lib
+    if cfg.custom is not None:
+        workloads["custom"] = cfg.custom
+    ref = _first(cfg.baseline(*inputs))
 
-
-def _verify_custom(self):
-    return self.first(self.cfg.baseline(*self.inputs))
+    results = {}
+    eager_ms = None
+    for name, fn in workloads.items():
+        try:
+            for _ in range(WARMUP):
+                fn(*inputs)
+            torch.cuda.synchronize()
+            verified = None if name == "eager" else cfg.verify(_first(fn(*inputs)), ref)
+            times = [time_ms(lambda: fn(*inputs)) for _ in tqdm(range(ITERATIONS), desc=name, file=sys.__stderr__)]
+        except Exception as exc:  # a workload (e.g. compile of a data-dependent op) may fail
+            print(f"  {name}: skipped ({type(exc).__name__}: {exc})", file=sys.__stderr__)
+            continue
+        results[name] = stats(times, verified, None if name == "eager" else eager_ms)
+        if name == "eager":
+            eager_ms = results[name].mean_ms
+    return results
 
 
 def main(name):
-    disable_progress_bars()  # the cached-file scan / revision check is not a download
+    disable_progress_bars()
     cfg = CONFIGS[name]()
-    attrs: dict[str, Any] = {"cfg": cfg}
-    if cfg.custom is not None:
-        attrs["benchmark_custom"] = _benchmark_custom
-        attrs["verify_custom"] = _verify_custom
-    cls = type("KernelBenchmark", (KernelBenchmark,), attrs)
     with capture() as log:
-        results, sha = run_benchmark_class(
-            cls,
-            iterations=KernelBenchmark.iterations,
-            warmup=KernelBenchmark.warmup,
-            repo_id=cfg.repo,
-            is_local=KernelBenchmark.is_local,
-            revision=f"v{cfg.version}",
-        )
-        if KernelBenchmark.active is not None:
-            KernelBenchmark.active.close()  # close the last workload's bar
+        results = run(cfg)
         _print_results_table(results)
+    kernel = getattr(cfg, "kernel", None)
+    sha = get_kernel_sha_from_build_name(kernel) if kernel is not None else None
     save(name, cfg, results, sha, log.getvalue())
 
 

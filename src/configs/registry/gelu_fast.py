@@ -1,10 +1,10 @@
 import torch
 import torch.nn.functional as F
 
-from configs.base import Config
+from configs.base import HubConfig
 
 
-class GeluFast(Config):
+class GeluFast(HubConfig):
     name = "gelu_fast"
     repo = "kernels-community/activation"
     dtype = torch.float16

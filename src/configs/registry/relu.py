@@ -1,9 +1,9 @@
 import torch
 
-from configs.base import Config
+from configs.base import HubConfig
 
 
-class Relu(Config):
+class Relu(HubConfig):
     name = "relu"
     repo = "kernels-community/relu"
     dtype = torch.float32

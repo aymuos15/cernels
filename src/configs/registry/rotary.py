@@ -1,10 +1,10 @@
 import torch
 
-from configs.base import Config
+from configs.base import HubConfig
 from kops.registry.rope import kernel as rope_kernel
 
 
-class Rotary(Config):
+class Rotary(HubConfig):
     name = "rotary"
     repo = "kernels-community/rotary"
     dtype = torch.float16
