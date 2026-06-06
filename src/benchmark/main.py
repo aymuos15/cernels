@@ -11,10 +11,27 @@ import torch
 from huggingface_hub.utils import disable_progress_bars
 from kernels.benchmark import Benchmark
 from kernels.cli.benchmark import _print_results_table, run_benchmark_class
+from tqdm import tqdm
 
 from benchmark.monitor import capture, save
 from configs.base import Config
 from configs.registry import CONFIGS
+
+
+def _bar(method):
+    """Advance a per-workload tqdm on each call. Writes to the real stderr (sys.__stderr__)
+    so it shows live even while monitor.capture() redirects sys.stderr for the log."""
+    label = method.__name__.split("benchmark_")[-1]
+
+    def wrapper(self):
+        if getattr(self, "_bar", None) is None:
+            if KernelBenchmark.active is not None:
+                KernelBenchmark.active.close()  # close the previous workload's bar
+            self._bar = KernelBenchmark.active = tqdm(desc=label, file=sys.__stderr__)
+        method(self)
+        self._bar.update(1)
+
+    return wrapper
 
 
 class KernelBenchmark(Benchmark):
@@ -23,6 +40,7 @@ class KernelBenchmark(Benchmark):
     warmup = 10
     is_local = False
     cfg: Config  # a Config instance, injected per run
+    active: "tqdm | None" = None  # the currently-running workload's bar
 
     def setup(self):
         self.inputs = self.cfg.inputs(self.device, self.cfg.dtype)
@@ -34,12 +52,15 @@ class KernelBenchmark(Benchmark):
         """Multi-output ops -> first tensor, for the correctness check."""
         return out[0] if isinstance(out, (tuple, list)) else out
 
+    @_bar
     def benchmark_eager(self):
         self.out = self.first(self.cfg.baseline(*self.inputs))
 
+    @_bar
     def benchmark_compile(self):
         self.out = self.first(self.compiled(*self.inputs))
 
+    @_bar
     def benchmark_kernel(self):
         fn = getattr(self.kernel, self.cfg.op)
         if self.buf is not None:
@@ -53,6 +74,7 @@ class KernelBenchmark(Benchmark):
 
 
 # Injected only when a config sets `custom` (a callable, e.g. from src/kops/).
+@_bar
 def _benchmark_custom(self):
     self.out = self.first(self.cfg.custom(*self.inputs))
 
@@ -78,6 +100,8 @@ def main(name):
             is_local=KernelBenchmark.is_local,
             revision=f"v{cfg.version}",
         )
+        if KernelBenchmark.active is not None:
+            KernelBenchmark.active.close()  # close the last workload's bar
         _print_results_table(results)
     save(name, results, sha, log.getvalue())
 
