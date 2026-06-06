@@ -22,8 +22,3 @@ class Config:
     custom: Any = None  # optional staticmethod(callable) -> benchmarked as an extra contestant
     inputs: Callable[..., tuple]
     baseline: Callable[..., Any]
-
-    def out_buffer(self, inputs):
-        """Preallocated output for `out_arg` kernels. Override when it isn't shaped
-        like inputs[0] (e.g. gated activations output half the last dim)."""
-        return torch.empty_like(inputs[0])

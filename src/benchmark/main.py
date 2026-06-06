@@ -45,7 +45,7 @@ class KernelBenchmark(Benchmark):
     def setup(self):
         self.inputs = self.cfg.inputs(self.device, self.cfg.dtype)
         self.compiled = torch.compile(self.cfg.baseline)
-        self.buf = self.cfg.out_buffer(self.inputs) if self.cfg.out_arg else None
+        self.buf = torch.empty_like(self.inputs[0]) if self.cfg.out_arg else None
 
     @staticmethod
     def first(out):
