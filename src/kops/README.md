@@ -14,4 +14,6 @@ def kernel(q, k, cos, sin):
     return q_out, k_out
 ```
 
-Then point a config at it with `custom: <name>` (see [`src/configs/`](../configs/README.md)). Start from torch, then swap in Triton/CUDA to actually beat the Hub kernel.
+Then point a config at it with `custom: <name>` (see [`src/configs/`](../configs/README.md)).
+
+[`rope.py`](rope.py) is a worked example: a fused CUDA RoPE kernel JIT-compiled with torch's `load_inline` (built on first call, cached after). On an RTX A1000 it runs ~19 ms vs the Hub kernel's ~35 ms and torch.compile's ~23 ms.

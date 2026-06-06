@@ -1,19 +1,21 @@
-"""Custom RoPE kernel — starting point (hand-fused + torch.compile).
+"""Custom RoPE: a hand-written CUDA kernel (rope.cu), one fused pass over q and k.
 
-Swap the body for Triton/CUDA to actually beat the Hub kernel. A custom kernel
-module just needs to expose `kernel(*inputs)` matching the config's inputs.
+JIT-compiled with torch's load_inline on first call (cached afterwards). Exposes
+kernel(q, k, cos, sin) -> (q_out, k_out), matching transformers' apply_rotary_pos_emb.
 """
 
-import torch
+from importlib.resources import files
+from typing import Any
 
+from torch.utils.cpp_extension import load_inline
 
-@torch.compile
-def _rope(x, cos, sin):
-    d = x.shape[-1] // 2
-    rot = torch.cat((-x[..., d:], x[..., :d]), dim=-1)
-    return x * cos + rot * sin
+_DECL = "std::tuple<at::Tensor, at::Tensor> rope(at::Tensor q, at::Tensor k, at::Tensor cos, at::Tensor sin);"
+_SRC = files("kops").joinpath("rope.cu").read_text()
+_mod: Any = None
 
 
 def kernel(q, k, cos, sin):
-    cos, sin = cos.unsqueeze(1), sin.unsqueeze(1)
-    return _rope(q, cos, sin), _rope(k, cos, sin)
+    global _mod
+    if _mod is None:  # compile on first use, not at import (keeps other benchmarks fast)
+        _mod = load_inline(name="rope_cuda", cpp_sources=_DECL, cuda_sources=_SRC, functions=["rope"])
+    return _mod.rope(q, k, cos, sin)
