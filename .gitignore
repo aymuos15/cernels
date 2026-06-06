@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.parquet
+secrets.env
+analysis/
+uv.lock
