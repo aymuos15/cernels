@@ -4,10 +4,10 @@ A custom kernel is your own implementation of an op, benchmarked head-to-head ag
 
 ## 1. Write the kernel
 
-Create `src/kops/<name>.py` exposing `kernel(*inputs)` — taking the same inputs the config builds (what the Hub `op` receives) and returning the result (a tensor, or a tuple):
+Create `src/kops/registry/<name>.py` exposing `kernel(*inputs)` — taking the same inputs the config builds (what the Hub `op` receives) and returning the result (a tensor, or a tuple):
 
 ```python
-# src/kops/<name>.py
+# src/kops/registry/<name>.py
 def kernel(q, k, cos, sin):
     ...
     return q_out, k_out
@@ -39,4 +39,4 @@ The `custom` column shows up in the results table (and in `python -m benchmark.v
 
 ## CUDA example
 
-[`rope.cu`](../../src/kops/rope.cu) + [`rope.py`](../../src/kops/rope.py) are a worked example: a fused CUDA RoPE kernel JIT-compiled with torch's `load_inline`. `rope.py` reads `rope.cu` and builds it on first call (cached afterwards, so other benchmarks stay fast). On an RTX A1000 it runs ~19 ms vs the Hub kernel's ~35 ms and torch.compile's ~23 ms.
+[`rope.cu`](../../src/kops/registry/rope.cu) + [`rope.py`](../../src/kops/registry/rope.py) are a worked example: a fused CUDA RoPE kernel JIT-compiled with torch's `load_inline`. `rope.py` reads `rope.cu` and builds it on first call (cached afterwards, so other benchmarks stay fast). On an RTX A1000 it runs ~19 ms vs the Hub kernel's ~35 ms and torch.compile's ~23 ms.
