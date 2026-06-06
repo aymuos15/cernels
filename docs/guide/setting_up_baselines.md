@@ -26,3 +26,5 @@ The `lib` is set independently: a Hub kernel (`kernels-community/...`) when one 
 
 > `torchvision.ops` is our example of the built-in-op case (NMS today, RoIAlign and other torchvision ops as future issues).
 
+Once the baseline is chosen, set its correctness check and `use_compile` — see [correctness](correctness.md).
+
