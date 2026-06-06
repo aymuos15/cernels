@@ -45,7 +45,7 @@ class KernelBenchmark(Benchmark):
     def setup(self):
         self.inputs = self.cfg.inputs(self.device, self.cfg.dtype)
         self.compiled = torch.compile(self.cfg.baseline)
-        self.buf = torch.empty_like(self.inputs[0]) if self.cfg.out_arg else None
+        self.buf = self.cfg.out_buffer(self.inputs) if self.cfg.out_arg else None
 
     @staticmethod
     def first(out):
@@ -103,7 +103,7 @@ def main(name):
         if KernelBenchmark.active is not None:
             KernelBenchmark.active.close()  # close the last workload's bar
         _print_results_table(results)
-    save(name, results, sha, log.getvalue())
+    save(name, cfg, results, sha, log.getvalue())
 
 
 if __name__ == "__main__":
