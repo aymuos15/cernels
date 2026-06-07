@@ -14,4 +14,6 @@ Hub kernels (the `hub` workload) generally **do** build on the Spark — current
 
 ## Workflow
 
-To implement a kernel from the [`.issues/`](.issues/list.md) backlog, follow [`skills/implement-kernel`](skills/implement-kernel/SKILL.md); the deep guides live in [`docs/guide/`](docs/guide/).
+To scout the HF + inference ecosystem for new kernel opportunities, follow [`docs/radar/scouting.md`](docs/radar/scouting.md) — it keeps the [opportunity radar](docs/radar/watchlist.md) current, which feeds the two stages below. To profile a whole model and decide which ops are worth a kernel, follow [`skills/profile-model`](skills/profile-model/SKILL.md) — its output feeds the backlog. To implement a kernel from the [`.issues/kernel/`](.issues/kernel/list.md) backlog, follow [`skills/implement-kernel`](skills/implement-kernel/SKILL.md). The deep guides live in [`docs/guide/`](docs/guide/).
+
+**Local-only, git-ignored:** [`.issues/`](.issues/) (the backlog, including [`.issues/kernel/`](.issues/kernel/)) and [`docs/radar/`](docs/radar/) (the opportunity radar) are in `.gitignore` — they are scratch/working state, not committed. They exist on your machine but won't show in `git status` or land in commits; don't expect them in a fresh clone, and don't try to `git add` them. Everything else under `docs/` and `skills/` is tracked.
