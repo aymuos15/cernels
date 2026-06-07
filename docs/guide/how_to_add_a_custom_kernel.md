@@ -4,7 +4,7 @@ A custom kernel is your own implementation of an op, benchmarked head-to-head ag
 
 ## 1. Write the kernel — as a `torch.library` custom op (required)
 
-Create `src/kops/registry/<name>.py` exposing `kernel(*inputs)` registered as a **`torch.library` custom op with a `register_fake`**. This is mandatory, not optional: it's what lets the kernel be dropped into a real model and survive `torch.compile` (compile graphs *through* a registered op with no graph break; an opaque `load_inline` function forces a graph break and is *worse* than no kernel — see [modelkernels](../../src/modelkernels/README.md)). The fake (meta) impl returns output tensors of the right shape/dtype without running, so compile can trace shapes.
+Create `src/kops/registry/<name>.py` exposing `kernel(*inputs)` registered as a **`torch.library` custom op with a `register_fake`**. This is mandatory, not optional: it's what lets the kernel be dropped into a real model and survive `torch.compile` (compile graphs *through* a registered op with no graph break; an opaque `load_inline` function forces a graph break and is *worse* than no kernel). The fake (meta) impl returns output tensors of the right shape/dtype without running, so compile can trace shapes.
 
 ```python
 # src/kops/registry/<name>.py

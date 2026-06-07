@@ -4,11 +4,11 @@ The GB10 is a UMA / iGPU Grace-Blackwell part, and the usual x86-desktop GPU-pro
 
 ## Treat wall-clock + tok/s as the main truth
 
-On a UMA part a lot of the interesting perf questions are about host/device overlap, not raw kernel occupancy. Lead with timeline/throughput measurement — `nsys`, and for us `torch.profiler` and end-to-end `generate()` tok/s ([modelkernels](../../src/modelkernels/README.md)) — and only drop to kernel-counter analysis after you have a hot kernel and confirmed counters work. Our [profiler](../../src/profiling/README.md) is the `nsys`-first layer: a timeline of where time goes, with `torch.profiler` op self-times as the authoritative GPU view.
+On a UMA part a lot of the interesting perf questions are about host/device overlap, not raw kernel occupancy. Lead with timeline/throughput measurement — `nsys`, and for us `torch.profiler` and end-to-end `generate()` tok/s — and only drop to kernel-counter analysis after you have a hot kernel and confirmed counters work. Our [profiler](../../src/profiling/README.md) is the `nsys`-first layer: a timeline of where time goes, with `torch.profiler` op self-times as the authoritative GPU view.
 
 ## Memory telemetry is unreliable (UMA)
 
-Because GPU and CPU share memory, `nvidia-smi` can mislead and `cudaMemGetInfo()` / `torch.cuda.max_memory_allocated()` aren't the full story. Do **not** over-trust peak-VRAM numbers on the Spark — `modelkernels` reports `peak GB` only as a rough sanity figure, not a hard metric.
+Because GPU and CPU share memory, `nvidia-smi` can mislead and `cudaMemGetInfo()` / `torch.cuda.max_memory_allocated()` aren't the full story. Do **not** over-trust peak-VRAM numbers on the Spark — treat any reported `peak GB` as a rough sanity figure, not a hard metric.
 
 ## `ncu` and hardware counters: `ERR_NVGPUCTRPERM`
 
