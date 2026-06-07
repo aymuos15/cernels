@@ -13,7 +13,7 @@ uv run --no-sync python -m benchmark.view                                       
 
 `<name>` = a `Config.name` in `src/configs/registry/`. Use `uv run` (not `.venv/bin/python` directly): a custom CUDA kernel built with `load_inline` needs `ninja` on `PATH`, and `uv run` puts `.venv/bin` there. Results are written per host under `analysis/<host>/`.
 
-Hub kernels (`lib`) have **no GB10 / sm_121 build**, so on the Spark the `lib` workload is **skipped** (shows `·`) — eager / compile / custom still run and verify.
+Hub kernels (`lib`) generally **do** run on the Spark: current `kernels-community` repos publish a `torch212-cxx11-cu130-aarch64-linux` build under Version 1 that resolves as "compatible, preferred ✅" on GB10 / sm_121, and our `HubConfig` (`get_kernel(repo, version=1)`) loads it. Check a repo with `kernels versions <repo>` before assuming. Only if no compatible build exists for the Spark's (torch 2.12 / cu130 / aarch64) combo is the `lib` workload **skipped** (shows `·`), with eager / compile / custom still running and verifying.
 
 ## Downloading a Hub kernel
 

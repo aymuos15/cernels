@@ -31,7 +31,7 @@ The launcher gives you `<N>`. Read `.issues/<N>-<name>.md` **and** its row in [`
 
 ### 1. Set up the environment / download
 All runs are on the Spark; `scripts/transfer.sh sie271-pc` to sync. See [running benchmarks](../../docs/guide/running_benchmarks.md).
-- **Hub `lib`:** make sure it's cached on the Spark (run once with `HF_HUB_OFFLINE=0`). Hub kernels have **no GB10/sm_121 build**, so the `lib` workload is skipped there (`·`); eager / compile / custom still run.
+- **Hub `lib`:** make sure it's cached on the Spark (run once with `HF_HUB_OFFLINE=0`). Hub kernels generally **do** run on the Spark — current `kernels-community` repos ship a `torch212-cxx11-cu130-aarch64-linux` Version 1 build that resolves "compatible, preferred ✅" on GB10/sm_121, and `HubConfig` loads it via `get_kernel(repo, version=1)`. Verify with `kernels versions <repo>` first; the `lib` workload is skipped (`·`) only when no build matches the Spark's torch 2.12 / cu130 / aarch64.
 - **Write-our-own:** open the cited reference implementation (the link in the list.md baseline column) and read it — WebFetch the upstream file if needed — before reproducing it.
 
 ### 2. Set up the baseline

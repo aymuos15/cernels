@@ -1,0 +1,13 @@
+# 01 · MoE grouped GEMM (MegaBlocks)
+
+**Why compile loses.** A Mixture-of-Experts layer routes each token to a few experts and runs a different weight matrix per expert. Done naively this is a Python loop of variable-sized matmuls (or a masked dense matmul that wastes most of the FLOPs). MegaBlocks expresses it as a single block-sparse / grouped GEMM. `torch.compile` cannot fuse data-dependent routing into a grouped matmul — the dynamic shapes and gather/scatter defeat it — so this is one of the largest structural wins available.
+
+**Source — Hub `lib`.** `kernels-community/megablocks` (downloads ~749, the most-used of the three MoE kernels on the Hub; alternatives `kernels-community/scattermoe` and `kernels-community/sonic-moe` are far less used). Loaded via our `HubConfig` (`get_kernel(repo, version=1)`). Relevant exposed entry points: `MoE`, `dMoE`, `SparseGLU`, `SparseMLP`, plus routing/sort helpers (`sort`, `argsort`, `histogram`, `indices`, `cumsum`). **Runs on the Spark (GB10/sm_121).** Verified: megablocks publishes Version 1 with a `torch212-cxx11-cu130-aarch64-linux` build that resolves as "compatible, preferred ✅" on the Spark (torch 2.12.0+cu130, aarch64), and `get_kernel` loads it cleanly — the `lib` workload is NOT skipped. (Much of the hot path is also Triton, which JITs for sm_121 at runtime regardless.) Note the current `kernels` lib requires an explicit `version=`/`revision=`; our `HubConfig` already passes `version=1`.
+
+**Config sketch.** `HubConfig`, dtype bf16. `baseline` is a dense/loop reference MoE: compute router logits, top-k select, then for each expert gather its tokens and apply its MLP (gate/up/down with SiLU). `op` is the kernel's MoE entry point. Not `out_arg`. Inputs: hidden states (tokens, hidden), router weights, per-expert weight stacks (E, hidden, ffn), and top-k. `verify` over the routed output at atol ~2e-2; **route once and feed the same assignment to both** baseline and kernel so they compute on identical token→expert decisions. Start with a fixed (non-random) router so eager and kernel see the same assignment.
+
+**Inputs to think about.** tokens=4096 (e.g. batch×seq), hidden=2048, ffn=5632, E=8 experts, top-k=2 — a small-MoE regime that fits one GPU.
+
+**Difficulty.** High — routing/gather/scatter plumbing and making the baseline use identical routing are the hard parts. Keep the routing + grouped GEMM + combine inside the timed path; `inputs()` builds raw tensors only, never the permuted/gathered layout.
+
+**Refs.** MegaBlocks paper (block-sparse MoE); ScatterMoE. Hub: https://huggingface.co/kernels-community/megablocks
