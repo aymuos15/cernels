@@ -1,6 +1,5 @@
 """SwiGLU activation: reference is the canonical torch composition F.silu(gate) * up (the op IS
-the reference). Custom is our fused bf16 CUDA kernel (kops/registry/silu_mul.cu). Same kernel used
-in the modelkernels integration.
+the reference). Custom is our fused bf16 CUDA kernel (kops/registry/silu_mul.cu).
 
 Timed path: the fused activation. Precomputed in inputs(): the raw gate / up tensors.
 """

@@ -1,5 +1,5 @@
 """RMSNorm: reference is torch.nn.functional.rms_norm (the op IS the reference). Custom is our
-bf16 CUDA kernel (kops/registry/rmsnorm.cu). Same kernel used in the modelkernels integration.
+bf16 CUDA kernel (kops/registry/rmsnorm.cu).
 
 Timed path: the normalization over the last dim. Precomputed in inputs(): the raw tensor + weight.
 """
