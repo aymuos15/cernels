@@ -2,7 +2,8 @@
 
 from configs.base import Config
 from configs.registry.gaussian_blur import GaussianBlur
+from configs.registry.megablocks_moe import MegablocksMoE
 from configs.registry.nms import NMS
 from configs.registry.rotary import Rotary
 
-CONFIGS: dict[str, type[Config]] = {c.name: c for c in (Rotary, NMS, GaussianBlur)}
+CONFIGS: dict[str, type[Config]] = {c.name: c for c in (Rotary, NMS, GaussianBlur, MegablocksMoE)}
