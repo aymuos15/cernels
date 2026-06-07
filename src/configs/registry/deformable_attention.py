@@ -1,9 +1,9 @@
 """Multi-scale deformable attention (Deformable DETR family).
 
-Baseline: transformers' MultiScaleDeformableAttention.forward (pure-torch grid_sample reference).
-Lib:      Hub kernel kernels-community/deformable-detr (ms_deform_attn_forward, fused CUDA).
-Custom:   our own fused CUDA kernel (deform_attn.cu) — bilinear sample + weight + fp32 accumulate
-          in a single pass, no per-level intermediate tensors.
+Reference: transformers' MultiScaleDeformableAttention.forward (pure-torch grid_sample, op_eager).
+Hub:       Hub kernel kernels-community/deformable-detr (ms_deform_attn_forward, fused CUDA).
+Custom:    our own fused CUDA kernel (deform_attn.cu) — bilinear sample + weight + fp32 accumulate
+           in a single pass, no per-level intermediate tensors.
 
 Timed path for all workloads: the full bilinear-sampling + weighted reduction.
 Precomputed in inputs(): value, spatial_shapes, level_start_index, sampling_locations,
@@ -26,7 +26,7 @@ class DeformableAttention(Config):
     op = "MultiScaleDeformableAttention.forward"
     use_compile = True
 
-    # Hub lib: ms_deform_attn_forward from kernels-community/deformable-detr
+    # Hub contender: ms_deform_attn_forward from kernels-community/deformable-detr
     _hub_kernel: Any = None
 
     custom = staticmethod(deform_attn_kernel)
@@ -76,14 +76,14 @@ class DeformableAttention(Config):
         return value, sp, spatial_shapes_list, lsi, sampling_locations, attention_weights, self._im2col_step
 
     def baseline(self, value, sp, spatial_shapes_list, lsi, sampling_locations, attention_weights, im2col_step):
-        # transformers' pure-torch grid_sample reference — the eager workload and correctness reference
+        # transformers' pure-torch grid_sample reference — the op_eager workload and correctness reference
         from transformers.models.deformable_detr.modeling_deformable_detr import MultiScaleDeformableAttention
 
         m = MultiScaleDeformableAttention.__new__(MultiScaleDeformableAttention)
         torch.nn.Module.__init__(m)
         return m.forward(value, sp, spatial_shapes_list, lsi, sampling_locations, attention_weights, im2col_step)
 
-    def lib(self, value, sp, spatial_shapes_list, lsi, sampling_locations, attention_weights, im2col_step):
+    def hub(self, value, sp, spatial_shapes_list, lsi, sampling_locations, attention_weights, im2col_step):
         # Hub kernel: fused CUDA ms_deform_attn_forward
         kernel = self._hub_kernel
         if kernel is None:

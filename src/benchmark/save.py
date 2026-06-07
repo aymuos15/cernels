@@ -46,6 +46,14 @@ def _custom_sha(cfg):
 
 def save(name, cfg, results, sha, log):
     machine = _machine()
+    ref_label = "hub" if cfg.reference_is_hub else "op_eager"
+    declared = {
+        "op_eager": not cfg.reference_is_hub,
+        "op_compile": not cfg.reference_is_hub and cfg.use_compile,
+        "hub": cfg.reference_is_hub or cfg.hub is not None,
+        "lib": cfg.lib is not None,
+        "custom": cfg.custom is not None,
+    }
     record = {
         "timestamp": datetime.now().isoformat(timespec="seconds"),
         "config": name,
@@ -53,6 +61,8 @@ def save(name, cfg, results, sha, log):
         "dtype": str(cfg.dtype).removeprefix("torch."),
         "input_shapes": _shapes(cfg),
         "machine": machine,
+        "reference": ref_label,  # which workload is the reference (op_eager or hub)
+        "declared": declared,  # which workloads the config defines (for `-` vs `·` in view)
         "provenance": {
             "repo": getattr(cfg, "repo", None),
             "version": getattr(cfg, "version", None),

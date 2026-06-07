@@ -1,8 +1,8 @@
-"""Benchmark an op from a config: eager vs compile vs lib (production op) vs custom.
+"""Benchmark an op from a config: op_eager / op_compile / hub / lib / custom.
 
 Usage: uv run python -m benchmark.main <config>   # <config> = a Config.name in src/configs/
 Writes analysis/<host>/<config>.{json,log}. Works for Hub kernels and non-Hub ops
-(e.g. torchvision) alike — the config just provides eager/lib/custom callables.
+(e.g. torchvision) alike — the config just provides baseline/hub/lib/custom callables.
 """
 
 import sys
@@ -28,30 +28,34 @@ def _first(out):
 
 def run(cfg):
     inputs = cfg.inputs(DEVICE, cfg.dtype)
-    workloads = {"eager": cfg.baseline}
-    if cfg.use_compile:
-        workloads["compile"] = torch.compile(cfg.baseline)
-    if cfg.lib is not None:  # ops whose eager reference *is* the production op set no separate lib
+    # The reference (baseline): timed as `hub` when it IS a Hub kernel, else as `op_eager`.
+    ref_label = "hub" if cfg.reference_is_hub else "op_eager"
+    workloads = {ref_label: cfg.baseline}
+    if not cfg.reference_is_hub and cfg.use_compile:
+        workloads["op_compile"] = torch.compile(cfg.baseline)
+    if not cfg.reference_is_hub and cfg.hub is not None:  # separate Hub-kernel contender
+        workloads["hub"] = cfg.hub
+    if cfg.lib is not None:  # separate library contender
         workloads["lib"] = cfg.lib
     if cfg.custom is not None:
         workloads["custom"] = cfg.custom
     ref = _first(cfg.baseline(*inputs))
 
     results = {}
-    eager_ms = None
+    ref_ms = None
     for name, fn in workloads.items():
         try:
             for _ in range(WARMUP):
                 fn(*inputs)
             torch.cuda.synchronize()
-            verified = None if name == "eager" else cfg.verify(_first(fn(*inputs)), ref)
+            verified = None if name == ref_label else cfg.verify(_first(fn(*inputs)), ref)
             times = [time_ms(lambda: fn(*inputs)) for _ in tqdm(range(ITERATIONS), desc=name, file=sys.__stderr__)]
         except Exception as exc:  # a workload (e.g. compile of a data-dependent op) may fail
             print(f"  {name}: skipped ({type(exc).__name__}: {exc})", file=sys.__stderr__)
             continue
-        results[name] = stats(times, verified, None if name == "eager" else eager_ms)
-        if name == "eager":
-            eager_ms = results[name].mean_ms
+        results[name] = stats(times, verified, None if name == ref_label else ref_ms)
+        if name == ref_label:
+            ref_ms = results[name].mean_ms
     return results
 
 

@@ -1,6 +1,6 @@
 # How to add a custom kernel
 
-A custom kernel is your own implementation of an op, benchmarked head-to-head against the Hub kernel and torch (eager / compile) and verified against the config's `baseline`. It lives in `src/kops/` and is wired in through a config.
+A custom kernel is your own implementation of an op, benchmarked head-to-head against the reference (op_eager / op_compile) and any Hub kernel (`hub`), and verified against the config's reference. It lives in `src/kops/` and is wired in through a config.
 
 ## 1. Write the kernel
 

@@ -16,7 +16,7 @@ echo "HF_TOKEN=hf_..." > secrets.env
 uv run --no-sync python src/dataset/build.py    # -> kernels.parquet
 uv run --no-sync python src/dataset/view.py     # interactive browser
 
-# benchmark — eager vs compile vs lib (+ custom) for one config
+# benchmark — op_eager / op_compile / hub / lib / custom for one config
 # RUN ON THE SPARK, not here (see AGENTS.md):
 ssh sie271-pc 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main relu"'
 rsync sie271-pc:kernels/analysis/ analysis/      # pull results back

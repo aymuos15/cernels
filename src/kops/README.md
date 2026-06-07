@@ -1,6 +1,6 @@
 # kops
 
-Custom kernels (kernel-ops) — your own implementations, benchmarked head-to-head against the Hub kernel and torch (eager / compile).
+Custom kernels (kernel-ops) — your own implementations, benchmarked head-to-head against the reference (op_eager / op_compile) and any Hub kernel (`hub`).
 
 Named `kops` (not `kernels`) on purpose: a top-level `kernels` package would shadow the Hugging Face `kernels` library the project imports.
 

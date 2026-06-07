@@ -12,4 +12,4 @@ See [how to add a config](../../docs/guide/how_to_add_a_config.md).
 
 ## custom kernels
 
-Set `custom = staticmethod(fn)` to benchmark your own kernel (from [`src/kops/`](../kops/README.md)) as an extra `custom` workload alongside `eager` / `compile` / `lib`, verified against `baseline`. This is how you try to *beat* the `lib` op.
+Set `custom = staticmethod(fn)` to benchmark your own kernel (from [`src/kops/`](../kops/README.md)) as the `custom` workload alongside `op_eager` / `op_compile` / `hub` / `lib`, verified against the reference. This is how you try to *beat* the reference (and any `hub` kernel).

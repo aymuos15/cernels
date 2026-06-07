@@ -10,7 +10,7 @@ ssh sie271-pc 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.ma
 
 Do not run `benchmark.main` / `benchmark.view` or compile a `.cu` locally. Pull results back for viewing with `rsync sie271-pc:kernels/analysis/ analysis/`.
 
-Hub kernels (`lib`) have no GB10 / sm_121 build, so on the Spark the `lib` workload is **skipped** (shows `·`) — that's expected; eager / compile / custom still run and verify.
+Hub kernels (the `hub` workload) generally **do** build on the Spark — current `kernels-community` repos ship a Version 1 `...cu130-aarch64-linux` build that resolves on GB10 / sm_121. Only when no compatible build exists is the `hub` workload **skipped** (shows `·`); op_eager / op_compile / custom still run and verify. See [docs/guide/running_benchmarks.md](docs/guide/running_benchmarks.md).
 
 ## Workflow
 

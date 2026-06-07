@@ -1,9 +1,20 @@
 """Base config classes. Each kernel/op is a Config subclass in configs/registry/.
 
-- Config: the general interface — a benchmark of an op, comparing eager / compile /
-  lib (the production reference) / custom (your own). The reference `lib` can be
-  anything (a Hub kernel, torchvision, ...), so ops that aren't on the Hub fit too.
-- HubConfig: convenience base whose `lib` is a Hugging Face Hub kernel.
+A benchmark compares up to five workloads (see docs/guide/setting_up_baselines.md):
+  - op_eager / op_compile : the reference op (a torch-op composition), run eager and
+    torch.compiled. The correctness ground-truth and speedup denominator. Only the
+    reference gets the compile split — it's the only workload torch.compile can fuse.
+  - hub    : an HF Kernel Hub kernel (kernels-community/...) for the op.
+  - lib    : a separate library implementation of the op, distinct from the reference.
+  - custom : our own kernel (src/kops/...). Always a contender, never the reference.
+
+- Config: the general interface. `baseline` is the reference; `hub`/`lib`/`custom` are
+  optional contenders, each timed once (torch.compile only graph-breaks around them).
+- HubConfig: convenience base whose `hub` contender is a Hugging Face Hub kernel.
+
+When no library op exists and a Hub kernel IS the reference (e.g. megablocks_moe), set
+`reference_is_hub = True`: `baseline` is then timed as the `hub` workload and there is no
+op_eager/op_compile.
 """
 
 from collections.abc import Callable
@@ -18,26 +29,28 @@ class Config:
     name: str = ""  # registry key (CLI arg)
     dtype: torch.dtype = torch.float16
     op: str = ""  # label for the reference op (shown in saved records)
-    use_compile: bool = True  # include the torch.compile workload (off for data-dependent ops)
-    custom: Any = None  # optional callable -> benchmarked as the `custom` workload
-    lib: Any = None  # the production op to beat (the `lib` workload); None when `baseline` already is it
+    use_compile: bool = True  # include the op_compile workload (off for data-dependent ops)
+    reference_is_hub: bool = False  # baseline IS a Hub kernel -> time it as `hub`, no op_eager/op_compile
+    hub: Any = None  # optional HF Hub kernel contender -> the `hub` workload
+    lib: Any = None  # optional separate library impl -> the `lib` workload
+    custom: Any = None  # optional callable -> the `custom` workload
     inputs: Callable[..., tuple]  # (device, dtype) -> input tuple
-    baseline: Callable[..., Any]  # native eager reference (the `eager` workload)
+    baseline: Callable[..., Any]  # the reference op (op_eager workload, or `hub` if reference_is_hub)
 
     def verify(self, out, ref) -> bool:
-        """Correctness of a workload vs the eager baseline. Override for non-tensor outputs."""
+        """Correctness of a contender vs the reference output. Override for non-tensor outputs."""
         return bool(torch.allclose(out, ref, atol=1e-2))
 
 
 class HubConfig(Config):
-    """`lib` is a Hub kernel: get_kernel(repo, version).<op>(...)."""
+    """`hub` contender is a Hub kernel: get_kernel(repo, version).<op>(...)."""
 
     repo: str = ""
     version: int = 1
     out_arg: bool = False  # kernel writes into a leading out tensor vs returns the result
-    kernel: Any = None  # the loaded kernel module (set on first lib call)
+    kernel: Any = None  # the loaded kernel module (set on first hub call)
 
-    def lib(self, *inputs):
+    def hub(self, *inputs):
         if self.kernel is None:
             self.kernel = get_kernel(self.repo, version=self.version)
         fn = getattr(self.kernel, self.op)
