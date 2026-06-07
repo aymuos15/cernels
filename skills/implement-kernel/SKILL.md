@@ -41,7 +41,7 @@ Follow [setting up baselines](../../docs/guide/setting_up_baselines.md): library
 [How to add a config](../../docs/guide/how_to_add_a_config.md): plain `Config` (non-Hub: `baseline` + `custom`) or `HubConfig` (a Hub `hub` contender). Set `name` / `dtype` / `op` / `inputs` / `baseline` / `verify`, then register in `CONFIGS`.
 
 ### 4. Write the custom kernel (if the issue has `custom ✓`)
-[How to add a custom kernel](../../docs/guide/how_to_add_a_custom_kernel.md): `src/kops/registry/<name>.{py,cu}` exposing `kernel(*inputs)`, wired via `custom = staticmethod(kernel)`. Mind the gotchas (uv run/ninja, `files("kops.registry")`, fp32 reduce, device-correct output).
+[How to add a custom kernel](../../docs/guide/how_to_add_a_custom_kernel.md): `src/kops/registry/<name>.{py,cu}` exposing `kernel(*inputs)`, wired via `custom = staticmethod(kernel)`. **The kernel must be a `torch.library` custom op with a `register_fake`** (required — so it composes with `torch.compile` when dropped into a model; an opaque `load_inline` fn forces graph breaks). Keep any Python prep in a thin wrapper, register only the CUDA call. Mind the gotchas (uv run/ninja, `files("kops.registry")`, fp32 reduce, device-correct output, fake matches real shape, `mutates_args=()`).
 
 ### 5. Benchmark and read the result
 `ssh sie271-pc 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main <name>"'`, then pull `analysis/` back and run `uv run --no-sync python -m benchmark.view` locally. See [running benchmarks](../../docs/guide/running_benchmarks.md) for the column meanings.
