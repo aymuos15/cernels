@@ -14,6 +14,7 @@ Precomputed in inputs(): the raw hidden-state tensor and the MoE module (weight 
 import torch
 
 from configs.base import Config
+from kops.registry.moe import kernel as moe_kernel
 
 
 class MegablocksMoE(Config):
@@ -73,6 +74,8 @@ class MegablocksMoE(Config):
             result = moe(x3d)
         result = result if isinstance(result, torch.Tensor) else result[0]
         return result.squeeze(1)
+
+    custom = staticmethod(moe_kernel)
 
     def verify(self, out, ref):
         return bool(torch.allclose(out, ref, atol=2e-2))
