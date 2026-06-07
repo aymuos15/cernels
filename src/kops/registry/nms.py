@@ -1,37 +1,22 @@
-"""Custom NMS: a hand-written block-bitmask CUDA kernel (nms.cu).
+"""nms loader — kernel-builder kernel under src/kops/nms/ (built with nix; see scripts/build_kernels.sh)."""
 
-Registered as a torch.library custom op (`kops::nms`) with a data-dependent fake (dynamic output
-size) so torch.compile can trace it. JIT-built with load_inline on first call.
-kernel(boxes, scores, iou) -> kept indices, matching torchvision.ops.nms.
-"""
-
-from importlib.resources import files
+from pathlib import Path
 from typing import Any
 
-import torch
-from torch import Tensor
-from torch.utils.cpp_extension import load_inline
-
-_DECL = "at::Tensor nms(at::Tensor boxes, double thresh);"
-_SRC = files("kops.registry").joinpath("nms.cu").read_text()
 _mod: Any = None
+_REPO = Path(__file__).resolve().parents[1] / "nms"
 
 
 def _module():
     global _mod
-    if _mod is None:  # compile on first use, not at import
-        _mod = load_inline(name="nms_cuda", cpp_sources=_DECL, cuda_sources=_SRC, functions=["nms"])
+    if _mod is None:
+        from kernels import get_local_kernel
+
+        _mod = get_local_kernel(_REPO)
     return _mod
 
 
-@torch.library.custom_op("kops::nms", mutates_args=())
-def kernel(boxes: Tensor, scores: Tensor, iou: float) -> Tensor:
+def kernel(boxes, scores, iou):
     order = scores.argsort(descending=True)
-    keep = _module().nms(boxes[order].contiguous(), float(iou))  # indices into the sorted order
+    keep = _module().nms(boxes[order].contiguous(), float(iou))
     return order[keep.to(order.device)]
-
-
-@kernel.register_fake
-def _(boxes: Tensor, scores: Tensor, iou: float) -> Tensor:
-    ctx = torch.library.get_ctx()  # NMS output length is data-dependent
-    return boxes.new_empty(ctx.new_dynamic_size(), dtype=torch.long)

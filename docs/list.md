@@ -16,18 +16,18 @@
 
 ## Latest results (GB10 / sm_121)
 
-Speedups normalized to `op_eager` (the reference) = 1.00×; ✓ = verifies against the reference. `op_compile` = `torch.compile` of the reference. For `megablocks_moe` the reference is the Hub kernel, so its `hub` column is the 1.00× baseline. Every custom kernel is a `torch.library` custom op (with `register_fake`) so it composes with `torch.compile`; the wrapper adds a few-µs eager dispatch cost — visible on the tiniest kernels (deformable, roi) — that disappears in a compiled graph.
+Speedups normalized to `op_eager` (the reference) = 1.00×; ✓ = verifies against the reference. `op_compile` = `torch.compile` of the reference. For `megablocks_moe` the reference is the Hub kernel, so its `hub` column is the 1.00× baseline. Every custom kernel is now a **kernel-builder kernel** (native `TORCH_LIBRARY` op, AOT-built via nix — see [how to add a custom kernel](guide/how_to_add_a_custom_kernel.md)); it composes with `torch.compile` and the AOT build has *less* dispatch overhead than the old JIT path (several kernels got faster vs op_compile).
 
 | config | op_eager | op_compile | hub | lib | custom | notes |
 |---|---|---|---|---|---|---|
-| rotary | 1.00× | 4.95× ✓ | 2.49× ✓ | — | **5.07× ✓** | custom edges op_compile and the Hub kernel |
-| nms | 1.00× | 0.98× ✓ | — | — | **1.41× ✓** | op_compile ~flat; custom beats torchvision |
-| gaussian_blur | 1.00× | 0.50× ✓ | — | — | **2.58× ✓** | op_compile slower; custom ~5× vs op_compile |
-| megablocks_moe | — | — | 1.00× | — | **1.31× ✓** | custom (cuBLAS Tensor-Core grouped GEMM) beats the megablocks Hub kernel |
-| primus_3d_rope | 1.00× | 6.20× ✓ | — | — | **6.45× ✓** | custom edges op_compile |
-| deformable_attention | 1.00× | 0.74× ✓ | 18.7× ✓ | — | **21.0× ✓** | op_compile slower; custom beats the Hub CUDA kernel (~1.1×); torch.library dispatch overhead on a ~30µs kernel |
-| roi_align | 1.00× | 0.89× ✓ | — | — | **1.06× ✓** | custom beats torchvision; op_compile slower; dispatch overhead on a ~90µs kernel |
-| rmsnorm | 1.00× | 0.94× ✓ | — | — | **1.04× ✓** | tiny op; torch.library dispatch overhead eats most of the win, but still beats op_compile ~1.1× |
-| silu_mul | 1.00× | 1.69× ✓ | — | — | **1.75× ✓** | custom (fused silu·mul) edges op_compile |
+| rotary | 1.00× | 4.85× ✓ | 2.54× ✓ | — | **5.17× ✓** | custom edges op_compile and the Hub kernel |
+| nms | 1.00× | 0.98× ✓ | — | — | **2.47× ✓** | op_compile ~flat; custom beats torchvision (AOT build faster) |
+| gaussian_blur | 1.00× | 0.55× ✓ | — | — | **2.65× ✓** | op_compile slower; custom ~5× vs op_compile |
+| megablocks_moe | — | — | 1.00× | — | **1.26× ✓** | custom (cuBLAS Tensor-Core grouped GEMM) beats the megablocks Hub kernel |
+| primus_3d_rope | 1.00× | 5.99× ✓ | — | — | **6.33× ✓** | custom edges op_compile |
+| deformable_attention | 1.00× | 0.70× ✓ | 17.7× ✓ | — | **24.5× ✓** | op_compile slower; custom beats the Hub CUDA kernel ~1.4× |
+| roi_align | 1.00× | 0.87× ✓ | — | — | **1.15× ✓** | custom beats torchvision; op_compile slower |
+| rmsnorm | 1.00× | 0.94× ✓ | — | — | **1.15× ✓** | tiny op; custom beats op_compile ~1.2× |
+| silu_mul | 1.00× | 1.66× ✓ | — | — | **1.64× ✓** | custom ≈ op_compile (ties; compile fuses this cheap elementwise as well) |
 
 References follow [setting up baselines](guide/setting_up_baselines.md): always a real library/Hub reference, never hand-written; the reference is only the op call, all prep in `inputs()`.

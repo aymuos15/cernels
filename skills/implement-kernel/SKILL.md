@@ -21,8 +21,8 @@ Two file mentions are the whole invocation: **`@.issues/kernel/<N>-<name>.md  @s
 ## Conventions
 - **Config name** = the issue slug with hyphens as underscores (e.g. `dual-rope` → `dual_rope`); it's the CLI arg to `benchmark.main`.
 - **Config** → `src/configs/registry/<name>.py`; add its class to `CONFIGS` in `src/configs/registry/__init__.py`.
-- **Custom kernel** (if the issue row shows `custom ✓`) → `src/kops/registry/<name>.{py,cu}`, JIT-built with `load_inline`, wired as `custom = staticmethod(kernel)`.
-- **Study these first**: `src/configs/registry/rotary.py`, `dual_rope.py`, `nms.py`; `src/kops/registry/rope.{py,cu}`; `src/configs/base.py`.
+- **Custom kernel** (if the issue row shows `custom ✓`) → a **kernel-builder repo** at `src/kops/<name>/` (build.toml + csrc/ + torch-ext/ + flake.nix), plus a thin loader `src/kops/registry/<name>.py` exposing `kernel(*inputs)`, wired as `custom = staticmethod(kernel)`. Built AOT via nix on the Spark; NOT load_inline.
+- **Study these first**: `src/configs/registry/rotary.py`, `nms.py`; `src/kops/rmsnorm/` and `src/kops/rope/` (kernel-builder repos); `src/kops/registry/rmsnorm.py` (loader); `src/configs/base.py`.
 
 ## Steps
 
@@ -41,7 +41,7 @@ Follow [setting up baselines](../../docs/guide/setting_up_baselines.md): library
 [How to add a config](../../docs/guide/how_to_add_a_config.md): plain `Config` (non-Hub: `baseline` + `custom`) or `HubConfig` (a Hub `hub` contender). Set `name` / `dtype` / `op` / `inputs` / `baseline` / `verify`, then register in `CONFIGS`.
 
 ### 4. Write the custom kernel (if the issue has `custom ✓`)
-[How to add a custom kernel](../../docs/guide/how_to_add_a_custom_kernel.md): `src/kops/registry/<name>.{py,cu}` exposing `kernel(*inputs)`, wired via `custom = staticmethod(kernel)`. **The kernel must be a `torch.library` custom op with a `register_fake`** (required — so it composes with `torch.compile` when dropped into a model; an opaque `load_inline` fn forces graph breaks). Keep any Python prep in a thin wrapper, register only the CUDA call. Mind the gotchas (uv run/ninja, `files("kops.registry")`, fp32 reduce, device-correct output, fake matches real shape, `mutates_args=()`).
+[How to add a custom kernel](../../docs/guide/how_to_add_a_custom_kernel.md): scaffold a kernel-builder repo `src/kops/<name>/` (build.toml, csrc/<name>.cu with `#include <torch/all.h>`, torch-ext/torch_binding.{cpp,h} registering a native `TORCH_LIBRARY` op, torch-ext/<name>/__init__.py, flake.nix) + a loader `src/kops/registry/<name>.py` (`get_local_kernel`). Hard rules: **`[general] name` uses dashes** (not underscores); **integer op args are `int64_t` in C++** (schema says `int`); build.toml needs `version` + `[general.hub] repo-id`; keep Python prep in the loader, not the op; reduce in fp32. Build on the Spark with `scripts/build_kernels.sh <name>` (nix → `build/`).
 
 ### 5. Benchmark and read the result
 `ssh sie271-pc 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main <name>"'`, then pull `analysis/` back and run `uv run --no-sync python -m benchmark.view` locally. See [running benchmarks](../../docs/guide/running_benchmarks.md) for the column meanings.

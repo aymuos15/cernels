@@ -1,5 +1,5 @@
 #include <ATen/cuda/CUDAContext.h>
-#include <torch/extension.h>
+#include <torch/all.h>
 
 // RoI Align (torchvision-compatible). One thread per output element (k, c, ph, pw).
 // For each output bin, sample sampling_ratio^2 points via bilinear interpolation and

@@ -17,7 +17,7 @@
 #include <c10/cuda/CUDAGuard.h>
 #include <cuda_bf16.h>
 #include <cublas_v2.h>
-#include <torch/extension.h>
+#include <torch/all.h>
 
 #include <cfloat>
 #include <cstdint>
@@ -131,7 +131,7 @@ at::Tensor moe_grouped_gemm(at::Tensor x,       // [T, H]      bf16
                             at::Tensor w2,      // [E, F, H]   bf16
                             at::Tensor indices, // [T, topk]   int32
                             at::Tensor weights, // [T, topk]   fp32
-                            int topk, int act_id) {
+                            int64_t topk, int64_t act_id) {
     c10::cuda::CUDAGuard guard(x.device());
     auto stream = at::cuda::getCurrentCUDAStream();
 

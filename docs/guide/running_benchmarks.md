@@ -6,12 +6,13 @@
 
 ```bash
 scripts/transfer.sh sie271-pc                                                    # sync repo to the Spark
+ssh sie271-pc 'bash -lc "cd ~/kernels && bash scripts/build_kernels.sh"'          # build custom kernels (nix)
 ssh sie271-pc 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main <name>"'
 rsync sie271-pc:kernels/analysis/ analysis/                                       # pull results back
 uv run --no-sync python -m benchmark.view                                        # view locally (read-only)
 ```
 
-`<name>` = a `Config.name` in `src/configs/registry/`. Use `uv run` (not `.venv/bin/python` directly): a custom CUDA kernel built with `load_inline` needs `ninja` on `PATH`, and `uv run` puts `.venv/bin` there. Results are written per host under `analysis/<host>/`.
+`<name>` = a `Config.name` in `src/configs/registry/`. **Custom kernels are kernel-builder kernels** (`src/kops/<name>/`): build them on the Spark with `scripts/build_kernels.sh [<name>...]` (nix → `src/kops/<name>/build/`) before benchmarking — the loader `get_local_kernel`s the built variant. `build/` is gitignored and survives `transfer.sh` (excluded), so you only rebuild when a kernel's source changes. Results are written per host under `analysis/<host>/`.
 
 Baseline libraries (`torchvision` for nms/roi_align, `kornia` for gaussian_blur) are an **optional extra**, not core deps. Install them once on the Spark with `uv sync --extra benchmark`; configs that need them import lazily, so other configs run without the extra.
 

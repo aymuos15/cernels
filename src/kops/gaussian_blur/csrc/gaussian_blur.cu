@@ -1,5 +1,5 @@
 #include <ATen/cuda/CUDAContext.h>
-#include <torch/extension.h>
+#include <torch/all.h>
 
 // Separable Gaussian blur with reflect-101 borders (matches kornia's border_type="reflect").
 // Two passes over (NC, H, W): horizontal (along W) into a temp, then vertical (along H).

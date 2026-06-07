@@ -26,6 +26,10 @@ rsync -avz --delete \
   --exclude '.ruff_cache/' \
   --exclude 'analysis/' \
   --exclude '*.parquet' \
+  --exclude 'build/' \
+  --exclude 'result' \
+  --exclude '.venv/' \
+  --exclude 'torch_compile_debug/' \
   "$ROOT/" "$HOST:$REMOTE_DIR/"
 
 echo "Transferred $ROOT -> $HOST:$REMOTE_DIR"

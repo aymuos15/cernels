@@ -1,4 +1,4 @@
-#include <torch/extension.h>
+#include <torch/all.h>
 #include <ATen/cuda/CUDAContext.h>
 
 // Fused multi-scale deformable attention forward — performance-tuned.
@@ -106,7 +106,7 @@ __global__ void ms_deform_attn_fwd_kernel(const float *__restrict__ value, const
 }
 
 at::Tensor ms_deform_attn_forward(at::Tensor value, at::Tensor spatial_shapes, at::Tensor level_start_index,
-                                  at::Tensor sampling_locations, at::Tensor attention_weights, int im2col_step) {
+                                  at::Tensor sampling_locations, at::Tensor attention_weights, int64_t im2col_step) {
     int B = value.size(0);
     int L_total = value.size(1);
     int n_heads = value.size(2);

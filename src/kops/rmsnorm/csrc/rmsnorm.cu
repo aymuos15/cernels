@@ -1,5 +1,5 @@
-#include <torch/extension.h>
 #include <ATen/cuda/CUDAContext.h>
+#include <torch/all.h>
 #include <cuda_bf16.h>
 
 // One block per row; threads cooperatively reduce sum of squares over the H dim in fp32,

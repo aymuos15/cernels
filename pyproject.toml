@@ -42,6 +42,10 @@ packages = ["src/benchmark", "src/configs", "src/dataset", "src/kops"]
 
 [tool.ruff]
 line-length = 120
+# kernel-builder per-kernel repos: torch-ext is a build-time package (imports the generated
+# ._ops), build/ holds nix artifacts — not part of our import graph.
+extend-exclude = ["src/kops/*/torch-ext", "src/kops/*/build"]
 
 [tool.pyrefly]
 project-includes = ["src"]
+project-excludes = ["**/torch-ext/**", "**/build/**", "**/.venv/**", "**/__pycache__/**"]
