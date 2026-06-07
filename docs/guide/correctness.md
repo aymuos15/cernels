@@ -22,3 +22,9 @@ For top-k / routing / NMS, the *selection* must match or `verify` compares diffe
 ## use_compile
 
 Set `use_compile = False` when the op is **data-dependent** (NMS, `unique`/`nonzero`, ragged loops, top-k-with-threshold). `torch.compile` only graph-breaks there, so the compile workload measures nothing useful — and may raise, in which case the runner just skips it. Leave it `True` (the default) for everything compile can actually trace.
+
+## Benchmark the real op — keep its distinctive work in the timed path
+
+`inputs()` builds the op's *inputs*; it must not do the op's *work*. Every workload (eager / compile / lib / custom) is timed calling the op on those inputs, so anything you precompute in `inputs()` is excluded from the measurement — and if you precompute the part that makes this op hard, you benchmark a trivialized stand-in and report a hollow "win."
+
+Example: for interleaved M-RoPE, building the interleaved `cos`/`sin` tables in `inputs()` reduces the kernel to plain RoPE — the interleave (the distinctive work) never runs in the timed path, so a ~1× result is meaningless. The interleave must happen inside the op (the baseline and the kernel), not in `inputs()`. Rule of thumb: `inputs()` produces the *same raw tensors the real caller would pass*; the op-specific transform belongs in `baseline`/`custom`.
