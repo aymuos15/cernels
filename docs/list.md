@@ -8,6 +8,7 @@
 | [megablocks_moe](../src/configs/registry/megablocks_moe.py) | [kernels-community/megablocks](https://huggingface.co/kernels-community/megablocks) MoE (Hub kernel is the reference) | — | kernels-community/megablocks MoE | [moe](../src/kops/registry/moe.cu) |
 | [primus_3d_rope](../src/configs/registry/primus_3d_rope.py) | [RotaryEmbeddingCat + apply_rot_embed_cat](https://github.com/MIC-DKFZ/dynamic-network-architectures/blob/main/dynamic_network_architectures/building_blocks/eva.py) (timm, as Primus uses) | — | timm.layers.apply_rot_embed_cat | [rope3d](../src/kops/registry/rope3d.cu) |
 | [deformable_attention](../src/configs/registry/deformable_attention.py) | [multi_scale_deformable_attention](https://github.com/huggingface/transformers/blob/main/src/transformers/models/deformable_detr/modeling_deformable_detr.py) (transformers) | [kernels-community/deformable-detr](https://huggingface.co/kernels-community/deformable-detr) | multi_scale_deformable_attention | [deform_attn](../src/kops/registry/deform_attn.cu) |
+| [roi_align](../src/configs/registry/roi_align.py) | [torchvision.ops.roi_align](https://pytorch.org/vision/stable/generated/torchvision.ops.roi_align.html) | — | torchvision.ops.roi_align | [roi_align](../src/kops/registry/roi_align.cu) |
 
 ## Latest results (GB10 / sm_121)
 
@@ -20,5 +21,6 @@ Speedups vs the eager baseline; ✓ = verifies against the baseline. `compile` =
 | megablocks_moe | 1.00× (megablocks ref) | — | — | **1.33× ✓** | custom (cuBLAS Tensor-Core grouped GEMM) beats megablocks |
 | primus_3d_rope | 1.00× | 6.33× ✓ | — | **6.61× ✓** | custom edges compile |
 | deformable_attention | 1.00× | 0.75× ✓ | 16.8× ✓ | **24.8× ✓** | compile slower; custom (1-thread/channel, float4, occupancy-tuned) beats upstream CUDA lib ~1.5× |
+| roi_align | 1.00× | 0.88× ✓ | — | **1.16× ✓** | custom (bilinear sampling, fp32) beats torchvision; compile slower |
 
 Baselines follow [setting up baselines](guide/setting_up_baselines.md): always a real library/Hub reference, never hand-written; `baseline` is only the op call, all prep in `inputs()`.
