@@ -1,5 +1,4 @@
 import torch
-import torchvision
 
 from configs.base import Config
 from kops.registry.nms import kernel as nms_kernel
@@ -21,6 +20,8 @@ class NMS(Config):
         return boxes, scores, self.iou
 
     def baseline(self, boxes, scores, iou):  # eager reference + correctness reference
+        import torchvision
+
         return torchvision.ops.nms(boxes, scores, iou)
 
     def verify(self, out, ref):  # index sets, not allclose

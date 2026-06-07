@@ -10,9 +10,16 @@ dependencies = [
     "rich>=15.0.0",
     "tabulate>=0.10.0",
     "torch>=2.12.0",
-    "torchvision>=0.27.0",
     "tqdm>=4.68.1",
     "transformers>=5.10.2",
+]
+
+[project.optional-dependencies]
+# Baseline libraries used only by benchmark configs (torchvision: nms/roi_align; kornia: gaussian_blur).
+# Install with `uv sync --extra benchmark` on the machine that runs benchmarks (the Spark).
+benchmark = [
+    "kornia>=0.8.3",
+    "torchvision>=0.27.0",
 ]
 
 [dependency-groups]

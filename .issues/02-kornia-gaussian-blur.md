@@ -1,0 +1,13 @@
+# 02 · Gaussian blur 2D (Kornia)
+
+**Why it matters.** `gaussian_blur2d` is the most-used filter in computer vision: every augmentation pipeline, scale-space / pyramid construction, anti-aliasing downsample, and pre-processing stage leans on it. It is separable — a 1D Gaussian along H then along W — so the production implementation is two depthwise convolutions. The naive reference (build the full 2D kernel, `unfold` the K×K neighborhood, weight-and-sum) materializes a `(B, C, K*K, H, W)` tensor and is pure memory traffic; `torch.compile` can fuse the elementwise reduction but cannot recover the separable factorization or the depthwise-conv data reuse, so it stays bandwidth-bound. Kornia ships the optimized separable version as the production op to beat.
+
+**Source — the op IS the baseline (case 1, like `nms`).** `gaussian_blur2d` is a production op, so per [setting up baselines](../../docs/guide/setting_up_baselines.md) the op itself is the eager reference — no hand-written naive reimplementation. Kornia is a plain pip library, not on the HF kernel Hub, so there is **no `lib`** (just as `nms` sets `baseline = torchvision.ops.nms` and leaves `lib` unset). The contender, if/when added, is a `custom` fused separable CUDA kernel (two-pass shared-memory stencil). Mirror `src/configs/registry/nms.py`. **Setup:** kornia is not yet a dependency and is not installed on the Spark — add it (`uv add kornia`, lands in `pyproject.toml` next to `torchvision`) and re-sync before running.
+
+**Config sketch.** `Config` (non-Hub), dtype fp32 (CV convention). `op = "kornia.filters.gaussian_blur2d"`. `baseline` = `kornia.filters.gaussian_blur2d(x, kernel_size, sigma)` run eagerly (the `eager` workload). `compile` = `torch.compile` of that op. `custom` (optional, future) = separable two-pass CUDA, verified at atol ~1e-3 against the eager op. `use_compile = True` — the comparison is whether compile (or a future custom kernel) beats kornia's separable depthwise conv.
+
+**Inputs to think about.** `(B, C, H, W) = (8, 3, 1024, 1024)`, `kernel_size=(11, 11)`, `sigma=(2.0, 2.0)`. Large spatial size + K=11 (121× neighborhood) so the unfold tensor dominates and the separable win is visible. (Worth a second sweep at a bigger `kernel_size=(31, 31)` where separability matters most.)
+
+**Difficulty.** Low–medium — no routing/quantization; the only fiddly part is matching Kornia's exact padding/normalization so `verify` passes. Keep the convolution in the timed path; `inputs()` builds only the raw image + scalar params, never a precomputed kernel or padded tensor.
+
+**Refs.** Kornia gaussian_blur2d: https://kornia.readthedocs.io/en/latest/filters.html#kornia.filters.gaussian_blur2d · separable Gaussian convolution.
