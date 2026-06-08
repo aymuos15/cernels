@@ -1,37 +1,37 @@
 """The registry: every benchmarkable kernel config, keyed by name. Add a kernel here."""
 
 from configs.base import Config
-from configs.registry.deformable_attention import DeformableAttention
-from configs.registry.gaussian_blur import GaussianBlur
-from configs.registry.gpt_oss_moe import GptOssMoE
-from configs.registry.megablocks_moe import MegablocksMoE
-from configs.registry.nms import NMS
-from configs.registry.primus_3d_rope import Primus3DRope
-from configs.registry.qwen3_next_gated_deltanet import Qwen3NextGatedDeltaNet
-from configs.registry.qwen3_next_gated_rmsnorm import Qwen3NextGatedRMSNorm
-from configs.registry.qwen3_next_moe import Qwen3NextMoE
-from configs.registry.rmsnorm import RMSNorm
-from configs.registry.roi_align import RoIAlign
-from configs.registry.rotary import Rotary
+from configs.registry.multi_scale_deformable_attention import MultiScaleDeformableAttention
+from configs.registry.gaussian_blur_2d import GaussianBlur2d
+from configs.registry.gpt_oss_moe_experts import GptOssMoeExperts
+from configs.registry.megablocks_moe import MegablocksMoe
+from configs.registry.non_maximum_suppression import NonMaximumSuppression
+from configs.registry.primus_3d_rope import Primus3dRope
+from configs.registry.qwen3_next_gated_deltanet import Qwen3NextGatedDeltanet
+from configs.registry.qwen3_next_gated_rmsnorm import Qwen3NextGatedRmsnorm
+from configs.registry.qwen3_next_moe_experts import Qwen3NextMoeExperts
+from configs.registry.rms_norm import RmsNorm
+from configs.registry.roi_align import RoiAlign
+from configs.registry.rotary_embedding import RotaryEmbedding
 from configs.registry.sam_decomposed_rel_pos import SamDecomposedRelPos
-from configs.registry.silu_mul import SiluMul
+from configs.registry.silu_and_mul import SiluAndMul
 
 CONFIGS: dict[str, type[Config]] = {
     c.name: c
     for c in (
-        Rotary,
-        NMS,
-        GaussianBlur,
-        MegablocksMoE,
-        GptOssMoE,
-        Primus3DRope,
-        Qwen3NextGatedDeltaNet,
-        Qwen3NextGatedRMSNorm,
-        Qwen3NextMoE,
-        DeformableAttention,
-        RoIAlign,
-        RMSNorm,
-        SiluMul,
+        RotaryEmbedding,
+        NonMaximumSuppression,
+        GaussianBlur2d,
+        MegablocksMoe,
+        GptOssMoeExperts,
+        Primus3dRope,
+        Qwen3NextGatedDeltanet,
+        Qwen3NextGatedRmsnorm,
+        Qwen3NextMoeExperts,
+        MultiScaleDeformableAttention,
+        RoiAlign,
+        RmsNorm,
+        SiluAndMul,
         SamDecomposedRelPos,
     )
 }

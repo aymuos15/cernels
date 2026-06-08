@@ -5,7 +5,7 @@ license = "Apache-2.0"
 backends = ["cuda"]
 
 [general.hub]
-repo-id = "kernels-local/qwen3-next-gated-deltanet"
+repo-id = "aymuos15/qwen3-next-gated-deltanet"
 
 [torch]
 src = [

@@ -1,0 +1,19 @@
+[general]
+name = "gpt-oss-moe-experts"
+version = 1
+license = "Apache-2.0"
+backends = ["cuda"]
+
+[general.hub]
+repo-id = "aymuos15/gpt-oss-moe-experts"
+
+[torch]
+src = [
+    "torch-ext/torch_binding.cpp",
+    "torch-ext/torch_binding.h",
+]
+
+[kernel.gpt_oss_moe_experts]
+backend = "cuda"
+depends = ["torch"]
+src = ["csrc/gpt_oss_moe_experts.cu"]

@@ -21,7 +21,7 @@ from configs.base import Config
 from kops.registry.qwen3_next_gated_rmsnorm import kernel as gated_rmsnorm_kernel
 
 
-class Qwen3NextGatedRMSNorm(Config):
+class Qwen3NextGatedRmsnorm(Config):
     name = "qwen3_next_gated_rmsnorm"
     dtype = torch.bfloat16
     op = "Qwen3NextRMSNormGated"

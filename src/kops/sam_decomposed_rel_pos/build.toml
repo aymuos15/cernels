@@ -5,7 +5,7 @@ license = "Apache-2.0"
 backends = ["cuda"]
 
 [general.hub]
-repo-id = "kernels-local/sam-decomposed-rel-pos"
+repo-id = "aymuos15/sam-decomposed-rel-pos"
 
 [torch]
 src = [

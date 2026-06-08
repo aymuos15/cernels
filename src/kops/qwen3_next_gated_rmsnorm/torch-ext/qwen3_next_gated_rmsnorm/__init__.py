@@ -1,8 +1,8 @@
 from ._ops import ops  # type: ignore  # _ops is generated at build time
 
 
-def gated_rmsnorm(x, gate, weight, eps):
-    return ops.gated_rmsnorm(x, gate, weight, eps)
+def qwen3_next_gated_rmsnorm(x, gate, weight, eps):
+    return ops.qwen3_next_gated_rmsnorm(x, gate, weight, eps)
 
 
-__all__ = ["gated_rmsnorm"]
+__all__ = ["qwen3_next_gated_rmsnorm"]

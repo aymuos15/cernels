@@ -15,7 +15,7 @@ from configs.base import Config
 from kops.registry.roi_align import kernel as roi_align_kernel
 
 
-class RoIAlign(Config):
+class RoiAlign(Config):
     name = "roi_align"
     # fp32: torchvision computes the sampling-coord math in the input dtype, so fp32 makes
     # our fp32 kernel verify cleanly (fp16 coords would diverge by ~0.1 at large positions).

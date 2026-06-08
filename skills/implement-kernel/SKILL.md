@@ -19,10 +19,11 @@ Two file mentions are the whole invocation: **`@.issues/kernel/<N>-<name>.md  @s
 - **Keep the op's distinctive work in the timed path.** `inputs()` builds raw inputs only — never precompute the op-specific transform there (e.g. don't pre-build interleaved cos/sin in `inputs()`), or you benchmark a trivialized op and the "win" is hollow. See [correctness](../../docs/guide/correctness.md).
 
 ## Conventions
-- **Config name** = the issue slug with hyphens as underscores (e.g. `dual-rope` → `dual_rope`); it's the CLI arg to `benchmark.main`.
+- **Naming** follows [RULES.md §1](../../RULES.md): one canonical `snake_case` slug per kernel; every other name (config, class, kops dir, loader, torch-ext pkg, op symbol, kebab build name + `aymuos15/<kebab>` repo) derives from it. Model-specific kernels carry the model prefix; op-level use the full op name, no abbreviations. `scripts/check_naming.py` enforces this.
+- **Config name** = the canonical slug; it's the CLI arg to `benchmark.main`.
 - **Config** → `src/configs/registry/<name>.py`; add its class to `CONFIGS` in `src/configs/registry/__init__.py`.
-- **Custom kernel** (if the issue row shows `custom ✓`) → a **kernel-builder repo** at `src/kops/<name>/` (build.toml + csrc/ + torch-ext/ + flake.nix), plus a thin loader `src/kops/registry/<name>.py` exposing `kernel(*inputs)`, wired as `custom = staticmethod(kernel)`. Built AOT via nix on the Spark; NOT load_inline.
-- **Study these first**: `src/configs/registry/rotary.py`, `nms.py`; `src/kops/rmsnorm/` and `src/kops/rope/` (kernel-builder repos); `src/kops/registry/rmsnorm.py` (loader); `src/configs/base.py`.
+- **Custom kernel** (if the issue row shows `custom ✓`) → a **kernel-builder repo** at `src/kops/<name>/` (build.toml + csrc/ + torch-ext/ + flake.nix + **`CARD.md`**), plus a thin loader `src/kops/registry/<name>.py` exposing `kernel(*inputs)`, wired as `custom = staticmethod(kernel)`. Built AOT via nix on the Spark; NOT load_inline. **Hub-ready by default**: real `repo-id` namespace + a filled `CARD.md` (see steps 4 and 6) so the kernel can be published without rework.
+- **Study these first**: `src/configs/registry/rotary_embedding.py`, `non_maximum_suppression.py`; `src/kops/rms_norm/` and `src/kops/rotary_embedding/` (kernel-builder repos); `src/kops/registry/rms_norm.py` (loader); `src/configs/base.py`.
 
 ## Steps
 
@@ -41,14 +42,17 @@ Follow [setting up baselines](../../docs/guide/setting_up_baselines.md): library
 [How to add a config](../../docs/guide/how_to_add_a_config.md): plain `Config` (non-Hub: `baseline` + `custom`) or `HubConfig` (a Hub `hub` contender). Set `name` / `dtype` / `op` / `inputs` / `baseline` / `verify`, then register in `CONFIGS`.
 
 ### 4. Write the custom kernel (if the issue has `custom ✓`)
-[How to add a custom kernel](../../docs/guide/how_to_add_a_custom_kernel.md): scaffold a kernel-builder repo `src/kops/<name>/` (build.toml, csrc/<name>.cu with `#include <torch/all.h>`, torch-ext/torch_binding.{cpp,h} registering a native `TORCH_LIBRARY` op, torch-ext/<name>/__init__.py, flake.nix) + a loader `src/kops/registry/<name>.py` (`get_local_kernel`). Hard rules: **`[general] name` uses dashes** (not underscores); **integer op args are `int64_t` in C++** (schema says `int`); build.toml needs `version` + `[general.hub] repo-id`; keep Python prep in the loader, not the op; reduce in fp32. Build on the Spark with `scripts/build_kernels.sh <name>` (nix → `build/`).
+[How to add a custom kernel](../../docs/guide/how_to_add_a_custom_kernel.md): scaffold a kernel-builder repo `src/kops/<name>/` (build.toml, csrc/<name>.cu with `#include <torch/all.h>`, torch-ext/torch_binding.{cpp,h} registering a native `TORCH_LIBRARY` op, torch-ext/<name>/__init__.py, flake.nix) + a loader `src/kops/registry/<name>.py` (load the built kernel via the shared `load(slug)` helper in `src/kops/registry/_local.py`). Hard rules: **`[general] name` uses dashes** (not underscores); **integer op args are `int64_t` in C++** (schema says `int`); build.toml needs `version` + `[general.hub] repo-id` set to the **project Hub namespace `aymuos15/<name>`** (NOT the `kernels-local/` placeholder — use the real namespace so the kernel is publish-ready); keep Python prep in the loader, not the op; reduce in fp32. Build on the Spark with `scripts/build_kernels.sh <name>` (nix → `build/`).
 
 ### 5. Benchmark and read the result
 `ssh spark 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main <name>"'`, then pull `analysis/` back and run `uv run --no-sync python -m benchmark.view` locally. See [running benchmarks](../../docs/guide/running_benchmarks.md) for the column meanings.
 
+### 6. Make it Hub-ready (`CARD.md`)
+Once the benchmark verifies, write `src/kops/<name>/CARD.md` so the kernel can be published to the Hub with no rework (kernel-builder uploads `CARD.md` as the repo `README.md`; see [how to add a custom kernel](../../docs/guide/how_to_add_a_custom_kernel.md)). The card has YAML front-matter (`tags: [kernel]`, `library_name: kernels`, `license: apache-2.0`) then: a one-line op description, the transformers/library **reference op**, a **benchmark table with the real `analysis/` numbers** (op_eager / op_compile / hub / lib / custom mean ms, and the custom-vs-`op_compile` speedup — state honestly if it's parity), a `get_kernel("aymuos15/<name>", version=1)` usage snippet, and the **aarch64 / sm_121 (GB10) build-target** note. Match the existing cards (e.g. `src/kops/qwen3_next_moe_experts/CARD.md`). **Do not build-and-upload or push to the Hub** — leave the kernel publish-ready in the working tree for review.
+
 ## Report (definition of done)
-Done when the config runs on the Spark and every present contender workload verifies `✓`. Work quietly during the task; return a **concise final report** with exactly:
-1. **Files** created / edited.
+Done when the config runs on the Spark, every present contender workload verifies `✓`, and (for a `custom ✓` issue) the kernel is **Hub-ready** — real `aymuos15/<name>` `repo-id` and a filled `CARD.md` (step 6). Work quietly during the task; return a **concise final report** with exactly:
+1. **Files** created / edited (including `CARD.md`).
 2. **Benchmark table** — op_eager / op_compile / hub / lib / custom mean ms, the custom-vs-op_compile (and hub/lib-vs-op_compile) speedup, and `✓`/`✗` per workload.
 3. **Verdict** — did the contender beat `op_compile`? That's the success bar (compile already saturates bandwidth, so beating op_eager alone is not a win).
 4. **Decisions / problems** — anything non-obvious you chose or hit. State explicitly **what runs inside the timed path vs precomputed in `inputs()`**, so a trivialized benchmark can't pass as a win.

@@ -33,9 +33,9 @@ def run(cfg):
     workloads = {ref_label: cfg.baseline}
     if not cfg.reference_is_hub and cfg.use_compile:
         workloads["op_compile"] = torch.compile(cfg.baseline)
-    if not cfg.reference_is_hub and cfg.hub is not None:  # separate Hub-kernel contender
+    if not cfg.reference_is_hub and cfg.hub is not None:
         workloads["hub"] = cfg.hub
-    if cfg.lib is not None:  # separate library contender
+    if cfg.lib is not None:
         workloads["lib"] = cfg.lib
     if cfg.custom is not None:
         workloads["custom"] = cfg.custom

@@ -5,7 +5,7 @@ license = "Apache-2.0"
 backends = ["cuda"]
 
 [general.hub]
-repo-id = "kernels-local/qwen3-next-gated-rmsnorm"
+repo-id = "aymuos15/qwen3-next-gated-rmsnorm"
 
 [torch]
 src = [
@@ -16,4 +16,4 @@ src = [
 [kernel.qwen3_next_gated_rmsnorm]
 backend = "cuda"
 depends = ["torch"]
-src = ["csrc/gated_rmsnorm.cu"]
+src = ["csrc/qwen3_next_gated_rmsnorm.cu"]

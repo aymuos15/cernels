@@ -1,5 +1,7 @@
 # Agent instructions
 
+Engineering standards (naming invariant, no dead code, comment discipline, structure) live in [RULES.md](RULES.md) — read it before changing code. This file is operational: where and how to run things.
+
 ## Never run benchmarks or kernels on this machine — only on the Spark
 
 All benchmarking, CUDA builds (`load_inline`), and kernel runs happen on the **Spark** (the GB10 / Grace-Blackwell box, `ssh spark`), never on the local machine. Transfer the repo with `scripts/transfer.sh spark`, then run over ssh:

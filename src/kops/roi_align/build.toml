@@ -5,7 +5,7 @@ license = "Apache-2.0"
 backends = ["cuda"]
 
 [general.hub]
-repo-id = "kernels-local/roi-align"
+repo-id = "aymuos15/roi-align"
 
 [torch]
 src = [

@@ -1,27 +1,23 @@
 """Primus 3D axial RoPE benchmark config.
 
-Baseline: the exact timm path Primus uses — `RotaryEmbeddingCat` builds the 3D axial
-embed (as in dynamic_network_architectures/building_blocks/eva.py: `Eva.rope`) and
-`apply_rot_embed_cat` rotates q/k (as timm's EvaBlock does). No hand-written rope.
-The Primus building-blocks package `dynamic-network-architectures` pins `timm<1.0.23`
-(in the `benchmark` extra), the version where 3D `RotaryEmbeddingCat` works — newer
-timm (>=1.0.23) has a 3D buffer-shape bug.
-
-Custom: a fused CUDA kernel (rope3d.cu) that handles the interleaved-pair layout.
+Baseline is the exact timm path Primus uses (`RotaryEmbeddingCat` + `apply_rot_embed_cat`),
+no hand-written rope. The Primus package `dynamic-network-architectures` pins `timm<1.0.23`,
+the version where 3D `RotaryEmbeddingCat` works — newer timm (>=1.0.23) has a 3D
+buffer-shape bug.
 
 Timed path: the rotation of q and k tensors using the precomputed embed.
-Precomputed in inputs(): the rope embed (sin/cos cat), which is legitimately
-cached once per fixed grid in the real model and shared across all blocks
-(exactly as `Eva._pos_embed` calls `self.rope.get_embed()` once per forward).
+Precomputed in inputs(): the rope embed (sin/cos cat), which is legitimately cached once per
+fixed grid in the real model and shared across all blocks (exactly as `Eva._pos_embed` calls
+`self.rope.get_embed()` once per forward).
 """
 
 import torch
 
 from configs.base import Config
-from kops.registry.rope3d import kernel as rope3d_kernel
+from kops.registry.primus_3d_rope import kernel as rope3d_kernel
 
 
-class Primus3DRope(Config):
+class Primus3dRope(Config):
     name = "primus_3d_rope"
     dtype = torch.bfloat16
     op = "timm.layers.apply_rot_embed_cat"

@@ -20,7 +20,7 @@ class Relu(HubConfig):
         return torch.relu(x)
 ```
 
-`HubConfig` supplies the `hub` contender automatically (it loads `repo` and calls the `op` attribute). Because `inputs` and `baseline` are plain methods, anything goes — structured inputs (RoPE's duplicated-half `cos`/`sin`) or composite/lazily-imported references (transformers' `apply_rotary_pos_emb`) are just code. See [`registry/rotary.py`](../../src/configs/registry/rotary.py).
+`HubConfig` supplies the `hub` contender automatically (it loads `repo` and calls the `op` attribute). Because `inputs` and `baseline` are plain methods, anything goes — structured inputs (RoPE's duplicated-half `cos`/`sin`) or composite/lazily-imported references (transformers' `apply_rotary_pos_emb`) are just code. See [`registry/rotary_embedding.py`](../../src/configs/registry/rotary_embedding.py).
 
 ## Non-Hub config (the common backlog case)
 
@@ -29,10 +29,10 @@ Most backlog issues have no Hub kernel — the reference op *is* the target and 
 ```python
 import torch, torchvision
 from configs.base import Config
-from kops.registry.nms import kernel as nms_kernel
+from kops.registry.non_maximum_suppression import kernel as nms_kernel
 
-class NMS(Config):
-    name = "nms"
+class NonMaximumSuppression(Config):     # CamelCase of the slug (RULES.md §1)
+    name = "non_maximum_suppression"     # canonical slug; the build/dir/op/repo all derive from it
     dtype = torch.float32
     op = "torchvision.ops.nms"        # label only (no Hub kernel)
     use_compile = False               # data-dependent output -> op_compile only graph-breaks
@@ -49,7 +49,7 @@ class NMS(Config):
         return set(out.tolist()) == set(ref.tolist())
 ```
 
-See [`registry/nms.py`](../../src/configs/registry/nms.py), [setting up baselines](setting_up_baselines.md), and [correctness](correctness.md).
+See [`registry/non_maximum_suppression.py`](../../src/configs/registry/non_maximum_suppression.py), [setting up baselines](setting_up_baselines.md), and [correctness](correctness.md).
 
 ## Fields
 

@@ -22,3 +22,9 @@ repos:
         entry: uv run --no-sync clang-format -i
         language: system
         files: \.(cu|cuh|cpp|cc|h|hpp)$
+      - id: check-naming
+        name: check naming invariant (RULES.md §1-2)
+        entry: uv run --no-sync python scripts/check_naming.py
+        language: system
+        pass_filenames: false
+        always_run: true

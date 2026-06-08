@@ -1,29 +1,25 @@
 """MegaBlocks MoE grouped-GEMM benchmark.
 
-The Hub kernel IS the reference (reference_is_hub; see docs/guide/setting_up_baselines.md):
-no library exposes a plain MoE op matching megablocks' layout, so the megablocks MoE module
-is the reference, timed as the `hub` workload (no op_eager/op_compile). Our custom fused
-grouped-GEMM kernel is the contender (`custom`).
-
-Timed path: router linear + softmax + top-k, token gather/permute, grouped GEMM
-(gate/up/down), scatter-combine — all inside the megablocks module call.
+The Hub kernel IS the reference (reference_is_hub): no library exposes a plain MoE op
+matching megablocks' layout. Timed path: router linear + softmax + top-k, token
+gather/permute, grouped GEMM (gate/up/down), scatter-combine — all inside the module call.
 Precomputed in inputs(): the raw hidden-state tensor and the MoE module (weight storage).
 """
 
 import torch
 
 from configs.base import Config
-from kops.registry.moe import kernel as moe_kernel
+from kops.registry.megablocks_moe import kernel as moe_kernel
 
 
-class MegablocksMoE(Config):
+class MegablocksMoe(Config):
     name = "megablocks_moe"
     repo = "kernels-community/megablocks"
     version = 1
     dtype = torch.bfloat16
     op = "kernels-community/megablocks MoE"
-    reference_is_hub = True  # the megablocks Hub kernel is the reference -> timed as `hub`
-    use_compile = False  # data-dependent routing shapes defeat torch.compile
+    reference_is_hub = True
+    use_compile = False
 
     _tokens: int = 4096
     _hidden: int = 2048
@@ -66,7 +62,7 @@ class MegablocksMoE(Config):
         x = torch.randn(self._tokens, self._hidden, device=device, dtype=dtype)
         return x, moe
 
-    def baseline(self, x, moe):  # the megablocks MoE Hub kernel is the reference (`hub` workload)
+    def baseline(self, x, moe):
         if moe is None:
             raise RuntimeError("moe module not available (meta device)")
         x3d = x.unsqueeze(1)  # MoE.forward_once expects [sl, bs, hs]

@@ -12,7 +12,7 @@
 // Everything below transcribes torch_chunk_gated_delta_rule from transformers'
 // modeling_qwen3_next.py exactly (use_qk_l2norm_in_kernel=True, scale=1/sqrt(dk)),
 // all math in fp32. The delta-rule result is algebraically independent of the chunk
-// size used to evaluate it, so we tile with CHUNK=32 internally (smaller shared
+// size used to evaluate it, so we tile with CHUNK=16 internally (smaller shared
 // footprint) even though the public op advertises chunk_size=64; results match the
 // chunk=64 reference within the bf16 tolerance.
 //
@@ -250,7 +250,8 @@ __global__ void deltanet_kernel(const __nv_bfloat16 *__restrict__ q, const __nv_
     }
 }
 
-at::Tensor deltanet(at::Tensor q, at::Tensor k, at::Tensor v, at::Tensor g, at::Tensor beta, int64_t chunk_size) {
+at::Tensor qwen3_next_gated_deltanet(at::Tensor q, at::Tensor k, at::Tensor v, at::Tensor g, at::Tensor beta,
+                                     int64_t chunk_size) {
     auto qc = q.contiguous(), kc = k.contiguous(), vc = v.contiguous();
     auto gc = g.contiguous(), bc = beta.contiguous();
     int B = qc.size(0), S = qc.size(1), H = qc.size(2), dk = qc.size(3);

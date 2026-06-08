@@ -57,8 +57,6 @@ class SamDecomposedRelPos(Config):
         return attn, query, rel_pos_h, rel_pos_w, w, w
 
     def baseline(self, attn, query, rel_pos_h, rel_pos_w, q_w, k_w):
-        # The real transformers op: get_decomposed_rel_pos (interpolate+gather+two einsums) plus
-        # the broadcast add into the logits, exactly as SamVisionAttention.forward does it.
         mod = _attn_module(attn.device)
         bias = mod.get_decomposed_rel_pos(query, rel_pos_h, rel_pos_w, (q_w, q_w), (k_w, k_w))
         return attn + bias.reshape_as(attn)

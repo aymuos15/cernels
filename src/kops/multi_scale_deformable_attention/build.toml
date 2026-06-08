@@ -1,0 +1,19 @@
+[general]
+name = "multi-scale-deformable-attention"
+version = 1
+license = "Apache-2.0"
+backends = ["cuda"]
+
+[general.hub]
+repo-id = "aymuos15/multi-scale-deformable-attention"
+
+[torch]
+src = [
+    "torch-ext/torch_binding.cpp",
+    "torch-ext/torch_binding.h",
+]
+
+[kernel.multi_scale_deformable_attention]
+backend = "cuda"
+depends = ["torch"]
+src = ["csrc/multi_scale_deformable_attention.cu"]

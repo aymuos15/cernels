@@ -1,0 +1,19 @@
+[general]
+name = "rms-norm"
+version = 1
+license = "Apache-2.0"
+backends = ["cuda"]
+
+[general.hub]
+repo-id = "aymuos15/rms-norm"
+
+[torch]
+src = [
+    "torch-ext/torch_binding.cpp",
+    "torch-ext/torch_binding.h",
+]
+
+[kernel.rms_norm]
+backend = "cuda"
+depends = ["torch"]
+src = ["csrc/rms_norm.cu"]

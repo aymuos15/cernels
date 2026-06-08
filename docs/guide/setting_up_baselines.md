@@ -33,10 +33,10 @@ Pick the reference in this order:
 The contenders are set independently, each only when it actually exists and differs from the reference:
 
 - **`hub`** — a Hub kernel for the op. When the reference is *already* a library op (case 1), a Hub kernel for the same op goes here as a contender (e.g. `rotary` → `kernels-community/rotary`, `deformable_attention` → `kernels-community/deformable-detr`). When the Hub kernel *is* the reference (case 2), it occupies `hub` as the reference and there is no separate contender.
-- **`lib`** — a *second, distinct* library implementation of the op, separate from the reference. Often unset. When the library op is itself the reference (case 1) there is usually no extra `lib`, exactly as `nms` does with `torchvision`.
+- **`lib`** — a *second, distinct* library implementation of the op, separate from the reference. Often unset. When the library op is itself the reference (case 1) there is usually no extra `lib`, exactly as `non_maximum_suppression` does with `torchvision`.
 - **`custom`** — our kernel. Almost always set; it is the kernel the whole benchmark exists to test.
 
-> `torchvision.ops` (NMS, RoI Align) and `kornia.filters` (gaussian_blur) are the built-in-op case; `transformers` / `timm` reference functions are the library-op case; `megablocks` is the Hub-as-reference case.
+> `torchvision.ops` (NMS, RoI Align) and `kornia.filters` (gaussian_blur_2d) are the built-in-op case; `transformers` / `timm` reference functions are the library-op case; `megablocks` is the Hub-as-reference case.
 
 ## Hard rule: the reference is *only* the op call
 
