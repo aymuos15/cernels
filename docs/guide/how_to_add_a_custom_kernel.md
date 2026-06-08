@@ -70,10 +70,10 @@ def kernel(*inputs):
 ## 4. Build + benchmark (on the Spark)
 
 ```bash
-scripts/transfer.sh sie271-pc
-ssh sie271-pc 'cd ~/kernels && bash scripts/build_kernels.sh <name>'   # nix build-and-copy -> src/kops/<name>/build/
-ssh sie271-pc 'cd ~/kernels && uv run --no-sync python -m benchmark.main <name>'
-rsync sie271-pc:kernels/analysis/ analysis/ ; uv run --no-sync python -m benchmark.view
+scripts/transfer.sh spark
+ssh spark 'cd ~/kernels && bash scripts/build_kernels.sh <name>'   # nix build-and-copy -> src/kops/<name>/build/
+ssh spark 'cd ~/kernels && uv run --no-sync python -m benchmark.main <name>'
+rsync spark:kernels/analysis/ analysis/ ; uv run --no-sync python -m benchmark.view
 ```
 
 `scripts/build_kernels.sh` git-inits each kernel dir and runs `nix run .#build-and-copy -L`. Wire `custom = staticmethod(<name>_kernel)` in the config (see [how to add a config](how_to_add_a_config.md)); success = the contender verifies `✓` and beats `op_compile` (see [correctness](correctness.md)).

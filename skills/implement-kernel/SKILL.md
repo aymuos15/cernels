@@ -7,13 +7,13 @@ description: Full operating manual to implement and benchmark one kernel + refer
 
 Take a single backlog issue from `.issues/kernel/` to a benchmarked, verified result. **Read this whole file and every guide it links before writing code — don't guess.**
 
-> **Never run benchmarks or build kernels locally — only on the Spark** (`ssh sie271-pc`). See [AGENTS.md](../../AGENTS.md).
+> **Never run benchmarks or build kernels locally — only on the Spark** (`ssh spark`). See [AGENTS.md](../../AGENTS.md).
 
 ## Launching (for whoever starts the agent)
 Two file mentions are the whole invocation: **`@.issues/kernel/<N>-<name>.md  @skills/implement-kernel/SKILL.md`** — no instruction text needed. The issue file is the *what*, this skill is the *how*. Read everything below, including the linked guides, before writing code; all rules, conventions, and the report contract live in this file.
 
 ## Rules
-- **Spark-only** for any run or `.cu` build: edit locally → `scripts/transfer.sh sie271-pc` → run over ssh → `rsync sie271-pc:kernels/analysis/ analysis/` to pull results back. The Spark uses a password — if auth hangs, note it and stop; don't retry forever.
+- **Spark-only** for any run or `.cu` build: edit locally → `scripts/transfer.sh spark` → run over ssh → `rsync spark:kernels/analysis/ analysis/` to pull results back. The Spark uses a password — if auth hangs, note it and stop; don't retry forever.
 - **Don't `git commit`/`push`.** Leave changes in the working tree for review.
 - **Touch only this issue's files**: its config, its `kops` kernel, and the one `CONFIGS` registry line. Don't edit other issues' files or the `.issues/kernel/` docs.
 - **Keep the op's distinctive work in the timed path.** `inputs()` builds raw inputs only — never precompute the op-specific transform there (e.g. don't pre-build interleaved cos/sin in `inputs()`), or you benchmark a trivialized op and the "win" is hollow. See [correctness](../../docs/guide/correctness.md).
@@ -30,7 +30,7 @@ Two file mentions are the whole invocation: **`@.issues/kernel/<N>-<name>.md  @s
 The launcher gives you `<N>`. Read `.issues/kernel/<N>-<name>.md` **and** its row in [`.issues/kernel/list.md`](../../.issues/kernel/list.md) — the row gives the reference op, whether there's a Hub kernel (`hub`), whether a `custom` kernel is expected, and any hardware note.
 
 ### 1. Set up the environment / download
-All runs are on the Spark; `scripts/transfer.sh sie271-pc` to sync. See [running benchmarks](../../docs/guide/running_benchmarks.md).
+All runs are on the Spark; `scripts/transfer.sh spark` to sync. See [running benchmarks](../../docs/guide/running_benchmarks.md).
 - **Hub kernel (`hub`):** make sure it's cached on the Spark (run once with `HF_HUB_OFFLINE=0`). Hub kernels generally **do** run on the Spark — current `kernels-community` repos ship a `torch212-cxx11-cu130-aarch64-linux` Version 1 build that resolves "compatible, preferred ✅" on GB10/sm_121, and `HubConfig` loads it via `get_kernel(repo, version=1)`. Verify with `kernels versions <repo>` first; the `hub` workload is skipped (`·`) only when no build matches the Spark's torch 2.12 / cu130 / aarch64.
 - **Library reference op:** open the cited reference function (the link in the issue's reference column) and read it — WebFetch the upstream file if needed — before wiring it in. **Never hand-write a reference** (see [setting up baselines](../../docs/guide/setting_up_baselines.md)); call the real library op directly.
 
@@ -44,7 +44,7 @@ Follow [setting up baselines](../../docs/guide/setting_up_baselines.md): library
 [How to add a custom kernel](../../docs/guide/how_to_add_a_custom_kernel.md): scaffold a kernel-builder repo `src/kops/<name>/` (build.toml, csrc/<name>.cu with `#include <torch/all.h>`, torch-ext/torch_binding.{cpp,h} registering a native `TORCH_LIBRARY` op, torch-ext/<name>/__init__.py, flake.nix) + a loader `src/kops/registry/<name>.py` (`get_local_kernel`). Hard rules: **`[general] name` uses dashes** (not underscores); **integer op args are `int64_t` in C++** (schema says `int`); build.toml needs `version` + `[general.hub] repo-id`; keep Python prep in the loader, not the op; reduce in fp32. Build on the Spark with `scripts/build_kernels.sh <name>` (nix → `build/`).
 
 ### 5. Benchmark and read the result
-`ssh sie271-pc 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main <name>"'`, then pull `analysis/` back and run `uv run --no-sync python -m benchmark.view` locally. See [running benchmarks](../../docs/guide/running_benchmarks.md) for the column meanings.
+`ssh spark 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main <name>"'`, then pull `analysis/` back and run `uv run --no-sync python -m benchmark.view` locally. See [running benchmarks](../../docs/guide/running_benchmarks.md) for the column meanings.
 
 ## Report (definition of done)
 Done when the config runs on the Spark and every present contender workload verifies `✓`. Work quietly during the task; return a **concise final report** with exactly:

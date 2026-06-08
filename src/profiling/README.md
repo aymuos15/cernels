@@ -4,8 +4,8 @@ End-to-end model profiler — find where a whole model spends its time, so we kn
 
 ```bash
 # RUN ON THE SPARK, not here (see AGENTS.md):
-ssh sie271-pc 'bash -lc "cd ~/kernels && HF_HUB_OFFLINE=0 uv run --no-sync python -m profiling.main <model>"'
-rsync sie271-pc:kernels/analysis/ analysis/        # pull results back
+ssh spark 'bash -lc "cd ~/kernels && HF_HUB_OFFLINE=0 uv run --no-sync python -m profiling.main <model>"'
+rsync spark:kernels/analysis/ analysis/        # pull results back
 uv run --no-sync python -m profiling.view          # render saved profiles (read-only, local ok)
 ```
 

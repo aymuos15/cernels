@@ -7,13 +7,13 @@ description: Operating manual to profile a whole model end-to-end (prefill + dec
 
 Take one model to a saved profile + a ranked recommendation of which **canonical ops** (RMSNorm, RoPE, CausalConv1d, SiluAndMul, …) are worth a custom kernel. This is the front of the funnel: its output feeds [`implement-kernel`](../implement-kernel/SKILL.md). **Read this whole file and the linked guides before running — don't guess.**
 
-> **Never run profilers or build kernels locally — only on the Spark** (`ssh sie271-pc`). See [AGENTS.md](../../AGENTS.md).
+> **Never run profilers or build kernels locally — only on the Spark** (`ssh spark`). See [AGENTS.md](../../AGENTS.md).
 
 ## Launching (for whoever starts the agent)
 The invocation is a model name plus this skill: **`@skills/profile-model/SKILL.md profile <model>`** — `<model>` is a `ModelProfile.name` in [`src/profiling/registry/`](../../src/profiling/registry/). If the model isn't there yet, adding it is step 1.
 
 ## Rules
-- **Spark-only** for any run: edit locally → `scripts/transfer.sh sie271-pc` → run over ssh → `rsync sie271-pc:kernels/analysis/ analysis/` to pull results back. The Spark uses a password — if auth hangs, note it and stop; don't retry forever.
+- **Spark-only** for any run: edit locally → `scripts/transfer.sh spark` → run over ssh → `rsync spark:kernels/analysis/ analysis/` to pull results back. The Spark uses a password — if auth hangs, note it and stop; don't retry forever.
 - **Don't `git commit`/`push`.** Leave changes in the working tree for review.
 - **No monkeypatching.** Profiling only observes the eager model (forward hooks + `torch.profiler` + an Inductor dump); it must not alter forwards. Kernel integration is a separate workflow.
 - **Profile, don't micro-benchmark.** One representative pass per phase is enough; the goal is *where the time goes*, not a precise speedup number.
@@ -29,10 +29,10 @@ The invocation is a model name plus this skill: **`@skills/profile-model/SKILL.m
 If `<model>` is already in `MODELS`, read its file. If not, write `src/profiling/registry/<name>.py`: a `ModelProfile` subclass with `load()` and `inputs()`. Match the loader to the model card (`AutoModelForImageTextToText` + `AutoProcessor` for a VLM, `AutoModelForCausalLM` + `AutoTokenizer` for an LLM); set `decode_tokens`. The package reuses the `benchmark` startup bridge, so transformers loads despite the kernels version conflict — see [`src/profiling/__init__.py`](../../src/profiling/__init__.py).
 
 ### 1. Run it on the Spark
-`scripts/transfer.sh sie271-pc`, then:
+`scripts/transfer.sh spark`, then:
 ```
-ssh sie271-pc 'bash -lc "cd ~/kernels && HF_HUB_OFFLINE=0 uv run --no-sync python -m profiling.main <model>"'
-rsync sie271-pc:kernels/analysis/ analysis/
+ssh spark 'bash -lc "cd ~/kernels && HF_HUB_OFFLINE=0 uv run --no-sync python -m profiling.main <model>"'
+rsync spark:kernels/analysis/ analysis/
 uv run --no-sync python -m profiling.view <model>      # render locally (read-only)
 ```
 `HF_HUB_OFFLINE=0` is needed the first time to download the model. Add `--no-inductor` to skip the compile/dump lens for a fast first pass. See [`src/profiling/README.md`](../../src/profiling/README.md) and [profiling on the Spark](../../docs/guide/profiling_on_spark.md) (GB10/UMA quirks: lead with timeline + tok/s, don't over-trust VRAM, `ncu` counter perms).

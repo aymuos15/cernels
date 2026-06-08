@@ -2,13 +2,13 @@
 
 ## Where to run — the Spark only
 
-**Never run benchmarks or build kernels on the local machine** (see [AGENTS.md](../../AGENTS.md)). Everything runs on the **Spark** (GB10 / Grace-Blackwell, `ssh sie271-pc`): transfer with `scripts/transfer.sh sie271-pc`, then run over ssh, then pull `analysis/` back.
+**Never run benchmarks or build kernels on the local machine** (see [AGENTS.md](../../AGENTS.md)). Everything runs on the **Spark** (GB10 / Grace-Blackwell, `ssh spark`): transfer with `scripts/transfer.sh spark`, then run over ssh, then pull `analysis/` back.
 
 ```bash
-scripts/transfer.sh sie271-pc                                                    # sync repo to the Spark
-ssh sie271-pc 'bash -lc "cd ~/kernels && bash scripts/build_kernels.sh"'          # build custom kernels (nix)
-ssh sie271-pc 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main <name>"'
-rsync sie271-pc:kernels/analysis/ analysis/                                       # pull results back
+scripts/transfer.sh spark                                                    # sync repo to the Spark
+ssh spark 'bash -lc "cd ~/kernels && bash scripts/build_kernels.sh"'          # build custom kernels (nix)
+ssh spark 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main <name>"'
+rsync spark:kernels/analysis/ analysis/                                       # pull results back
 uv run --no-sync python -m benchmark.view                                        # view locally (read-only)
 ```
 
