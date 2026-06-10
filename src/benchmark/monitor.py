@@ -1,10 +1,9 @@
-"""Measurement: capture run output, time a workload, and reduce timings to stats."""
+"""Measurement: capture run output and reduce timings to stats."""
 
 import contextlib
 import io
 import sys
 
-import torch
 from kernels.cli.benchmark import TimingResults, _calculate_iqr_and_outliers
 
 
@@ -15,16 +14,6 @@ def capture():
     with contextlib.redirect_stderr(buf):
         yield buf
     sys.stderr.write(buf.getvalue())
-
-
-def time_ms(fn):
-    """One timed call (CUDA-event timed, synchronized)."""
-    start, end = torch.cuda.Event(True), torch.cuda.Event(True)
-    start.record()
-    fn()
-    end.record()
-    torch.cuda.synchronize()
-    return start.elapsed_time(end)
 
 
 def stats(times, verified, ref_ms):

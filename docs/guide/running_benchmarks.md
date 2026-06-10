@@ -26,6 +26,10 @@ Benchmarks run **offline from the HF cache** by default (no Hub requests); `HF_T
 HF_HUB_OFFLINE=0 uv run --no-sync python -m benchmark.main <name>
 ```
 
+## Timing methodology
+
+Workloads are timed with the native `torch.utils.benchmark.Timer(...).blocked_autorange()` after an explicit 10-call warmup (the warmup keeps `torch.compile` compilation out of the measurement). `blocked_autorange` runs blocks of iterations between CUDA syncs, so per-call launch latency and sync cost are amortized — this matters for tens-of-µs ops, where per-call event timing inflates every sample by the ~5–10 µs CPU launch gap. In the saved `TimingResults`, `iterations` counts measurement samples (blocks); each sample is the per-iteration mean of one block. Inputs are deliberately **reused across iterations (hot L2)** — there is no `do_bench`-style cache flush between calls — so bandwidth-bound "ties op_compile at the roofline" verdicts should be read with that in mind.
+
 ## Reading the result
 
 `view.py` columns: `op_eager / op_compile / hub / lib / custom` (mean ms), `hub|lib|custom vs ref` (speedups vs the reference bar = `op_compile`, else `op_eager`, else `hub`), and `hub|lib|custom ✓` (verification — `✓` pass, `✗` fail, `·` ran but no verdict / skipped, `-` not defined for this config). The reference's own column shows `-` for speedup/verify.

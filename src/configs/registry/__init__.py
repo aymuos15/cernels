@@ -1,6 +1,7 @@
 """The registry: every benchmarkable kernel config, keyed by name. Add a kernel here."""
 
 from configs.base import Config
+from configs.registry.cohere2_moe_experts import Cohere2MoeExperts, Cohere2MoeExpertsDecode
 from configs.registry.multi_scale_deformable_attention import MultiScaleDeformableAttention
 from configs.registry.gaussian_blur_2d import GaussianBlur2d
 from configs.registry.gpt_oss_moe_experts import GptOssMoeExperts
@@ -20,6 +21,8 @@ CONFIGS: dict[str, type[Config]] = {
     c.name: c
     for c in (
         RotaryEmbedding,
+        Cohere2MoeExperts,
+        Cohere2MoeExpertsDecode,
         NonMaximumSuppression,
         GaussianBlur2d,
         MegablocksMoe,

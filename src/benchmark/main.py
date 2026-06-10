@@ -10,15 +10,15 @@ import sys
 import torch
 from huggingface_hub.utils import disable_progress_bars
 from kernels.cli.benchmark import _print_results_table, get_kernel_sha_from_build_name
-from tqdm import tqdm
+from torch.utils.benchmark import Timer
 
-from benchmark.monitor import capture, stats, time_ms
+from benchmark.monitor import capture, stats
 from benchmark.save import save
 from configs.registry import CONFIGS
 
 DEVICE = "cuda"
-WARMUP = 10
-ITERATIONS = 100
+WARMUP = 10  # explicit warmup keeps torch.compile compilation out of the measurement
+MIN_RUN_S = 1.0  # blocked_autorange measurement budget per workload
 
 
 def _first(out):
@@ -49,7 +49,11 @@ def run(cfg):
                 fn(*inputs)
             torch.cuda.synchronize()
             verified = None if name == ref_label else cfg.verify(_first(fn(*inputs)), ref)
-            times = [time_ms(lambda: fn(*inputs)) for _ in tqdm(range(ITERATIONS), desc=name, file=sys.__stderr__)]
+            m = Timer(stmt="fn(*inputs)", globals={"fn": fn, "inputs": inputs}).blocked_autorange(
+                min_run_time=MIN_RUN_S
+            )
+            times = [t * 1e3 for t in m.times]  # per-iteration ms; launch + sync amortized per block
+            print(f"  {name}: {len(times)} samples x {m.number_per_run} iters/sample", file=sys.__stderr__)
         except Exception as exc:  # a workload (e.g. compile of a data-dependent op) may fail
             print(f"  {name}: skipped ({type(exc).__name__}: {exc})", file=sys.__stderr__)
             continue

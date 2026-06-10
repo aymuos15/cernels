@@ -17,25 +17,31 @@
 | [qwen3_next_moe_experts](../src/configs/registry/qwen3_next_moe_experts.py) | [Qwen3NextSparseMoeBlock](https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3_next/modeling_qwen3_next.py) (transformers) | — | — | [qwen3_next_moe_experts](../src/kops/qwen3_next_moe_experts/) |
 | [qwen3_next_gated_deltanet](../src/configs/registry/qwen3_next_gated_deltanet.py) | [torch_chunk_gated_delta_rule](https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3_next/modeling_qwen3_next.py) (transformers) | — | — | [qwen3_next_gated_deltanet](../src/kops/qwen3_next_gated_deltanet/) |
 | [qwen3_next_gated_rmsnorm](../src/configs/registry/qwen3_next_gated_rmsnorm.py) | [Qwen3NextRMSNormGated](https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3_next/modeling_qwen3_next.py) (transformers) | — | — | [qwen3_next_gated_rmsnorm](../src/kops/qwen3_next_gated_rmsnorm/) |
+| [sam_decomposed_rel_pos](../src/configs/registry/sam_decomposed_rel_pos.py) | [add_decomposed_rel_pos](https://github.com/huggingface/transformers/blob/main/src/transformers/models/sam/modeling_sam.py) (transformers) | — | — | [sam_decomposed_rel_pos](../src/kops/sam_decomposed_rel_pos/) |
+| [cohere2_moe_experts](../src/configs/registry/cohere2_moe_experts.py) | [Cohere2MoeExperts](https://github.com/huggingface/transformers/blob/main/src/transformers/models/cohere2_moe/modeling_cohere2_moe.py) (transformers, North Mini Code) | — | — | [cohere2_moe_experts](../src/kops/cohere2_moe_experts/) |
+| [cohere2_moe_experts_decode](../src/configs/registry/cohere2_moe_experts.py) | [Cohere2MoeExperts](https://github.com/huggingface/transformers/blob/main/src/transformers/models/cohere2_moe/modeling_cohere2_moe.py) at n_tokens=1 (decode) | — | — | [cohere2_moe_experts](../src/kops/cohere2_moe_experts/) (decode entry point) |
 
 ## Latest results (GB10 / sm_121)
 
-Speedups normalized to `op_eager` (the reference) = 1.00×; ✓ = verifies against the reference. `op_compile` = `torch.compile` of the reference. For `megablocks_moe` the reference is the Hub kernel, so its `hub` column is the 1.00× baseline. Every custom kernel is a **kernel-builder kernel** (native `TORCH_LIBRARY` op, AOT-built via nix — see [how to add a custom kernel](guide/how_to_add_a_custom_kernel.md)).
+Speedups normalized to `op_eager` (the reference) = 1.00×; ✓ = verifies against the reference. `op_compile` = `torch.compile` of the reference. For `megablocks_moe` the reference is the Hub kernel, so its `hub` column is the 1.00× baseline. Every custom kernel is a **kernel-builder kernel** (native `TORCH_LIBRARY` op, AOT-built via nix, or kernel-builder's cmake flow on hosts without nix — see [how to add a custom kernel](guide/how_to_add_a_custom_kernel.md)). Timing: `torch.utils.benchmark` `blocked_autorange` (see [timing methodology](guide/running_benchmarks.md#timing-methodology)).
 
 | config | op_eager | op_compile | hub | lib | custom | notes |
 |---|---|---|---|---|---|---|
-| rotary_embedding | 1.00× | 4.85× ✓ | 2.54× ✓ | — | **5.17× ✓** | custom edges op_compile and the Hub kernel |
-| non_maximum_suppression | 1.00× | 0.98× ✓ | — | — | **2.47× ✓** | op_compile ~flat; custom beats torchvision (AOT build faster) |
-| gaussian_blur_2d | 1.00× | 0.55× ✓ | — | — | **2.65× ✓** | op_compile slower; custom ~5× vs op_compile |
-| megablocks_moe | — | — | 1.00× | — | **1.26× ✓** | custom (cuBLAS Tensor-Core grouped GEMM) beats the megablocks Hub kernel |
-| primus_3d_rope | 1.00× | 5.99× ✓ | — | — | **6.33× ✓** | custom edges op_compile |
-| multi_scale_deformable_attention | 1.00× | 0.70× ✓ | 17.7× ✓ | — | **24.5× ✓** | op_compile slower; custom beats the Hub CUDA kernel ~1.4× |
-| roi_align | 1.00× | 0.87× ✓ | — | — | **1.15× ✓** | custom beats torchvision; op_compile slower |
-| rms_norm | 1.00× | 0.94× ✓ | — | — | **1.15× ✓** | tiny op; custom beats op_compile ~1.2× |
-| silu_and_mul | 1.00× | 1.66× ✓ | — | — | **1.64× ✓** | custom ≈ op_compile (ties; compile fuses this cheap elementwise as well) |
-| gpt_oss_moe_experts | 1.00× | 1.10× ✓ | — | — | **1.41× ✓** | grouped GEMM + clamped-limited SwiGLU; 1.28× vs op_compile |
-| qwen3_next_moe_experts | 1.00× | 0.99× ✓ | — | — | **2.67× ✓** | 512 experts top-10 + shared expert; 2.70× vs op_compile |
-| qwen3_next_gated_deltanet | 1.00× | 1.44× ✓ | — | — | **1.94× ✓** | chunked delta-rule linear attention; 1.35× vs op_compile |
-| qwen3_next_gated_rmsnorm | 1.00× | 10.9× ✓ | — | — | **11.1× ✓** | fused gated RMSNorm; ties op_compile (bandwidth-bound single pass) |
+| rotary_embedding | 1.00× | 4.90× ✓ | 2.51× ✓ | — | **5.18× ✓** | custom edges op_compile and the Hub kernel |
+| non_maximum_suppression | 1.00× | 0.98× ✓ | — | — | **2.41× ✓** | op_compile ~flat; custom beats torchvision (AOT build faster) |
+| gaussian_blur_2d | 1.00× | 0.51× ✓ | — | — | **2.64× ✓** | op_compile slower; custom ~5.2× vs op_compile |
+| megablocks_moe | — | — | 1.00× | — | **1.30× ✓** | custom (cuBLAS Tensor-Core grouped GEMM) beats the megablocks Hub kernel |
+| primus_3d_rope | 1.00× | 6.20× ✓ | — | — | **6.60× ✓** | custom edges op_compile |
+| multi_scale_deformable_attention | 1.00× | 0.71× ✓ | 19.2× ✓ | — | **27.3× ✓** | op_compile slower; custom beats the Hub CUDA kernel ~1.4× |
+| roi_align | 1.00× | 0.81× ✓ | — | — | **1.12× ✓** | custom beats torchvision; op_compile slower |
+| rms_norm | 1.00× | 0.91× ✓ | — | — | **1.12× ✓** | tiny op; custom beats op_compile ~1.2× |
+| silu_and_mul | 1.00× | 1.68× ✓ | — | — | **1.75× ✓** | custom ≈ op_compile (ties; compile fuses this cheap elementwise as well) |
+| gpt_oss_moe_experts | 1.00× | 1.10× ✓ | — | — | **1.40× ✓** | grouped GEMM + clamped-limited SwiGLU; 1.27× vs op_compile |
+| qwen3_next_moe_experts | 1.00× | 0.98× ✓ | — | — | **2.69× ✓** | 512 experts top-10 + shared expert; 2.75× vs op_compile |
+| qwen3_next_gated_deltanet | 1.00× | 1.40× ✓ | — | — | **1.93× ✓** | chunked delta-rule linear attention; 1.38× vs op_compile |
+| qwen3_next_gated_rmsnorm | 1.00× | 10.5× ✓ | — | — | **11.1× ✓** | fused gated RMSNorm; ties op_compile (bandwidth-bound single pass) |
+| sam_decomposed_rel_pos | 1.00× | 0.99× ✓ | — | — | **23.4× ✓** | decomposed rel-pos attention bias; 23.6× vs op_compile |
+| cohere2_moe_experts | 1.00× | 1.01× ✓ | — | — | **2.13× ✓** | North Mini Code 128-expert top-8 grouped GEMM; 2.11× vs op_compile |
+| cohere2_moe_experts_decode | 1.00× | 0.98× ✓ | — | — | **3.50× ✓** | fused top-8 gather-GEMV at n_tokens=1; 3.58× vs op_compile, near the weight-traffic floor |
 
 References follow [setting up baselines](guide/setting_up_baselines.md): always a real library/Hub reference, never hand-written; the reference is only the op call, all prep in `inputs()`.
