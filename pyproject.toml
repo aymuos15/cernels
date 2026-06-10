@@ -3,6 +3,7 @@ name = "kernels-dataset"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "accelerate>=1.13.0",
     "datasets>=5.0.0",
     "huggingface-hub>=1.18.0",
     "kernels>=0.15.2",
@@ -38,7 +39,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/benchmark", "src/configs", "src/dataset", "src/kops"]
+packages = ["src/benchmark", "src/configs", "src/dataset", "src/kops", "src/modeling", "src/profiling"]
 
 [tool.ruff]
 line-length = 120
