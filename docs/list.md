@@ -20,6 +20,8 @@
 | [sam_decomposed_rel_pos](../src/configs/registry/sam_decomposed_rel_pos.py) | [add_decomposed_rel_pos](https://github.com/huggingface/transformers/blob/main/src/transformers/models/sam/modeling_sam.py) (transformers) | — | — | [sam_decomposed_rel_pos](../src/kops/sam_decomposed_rel_pos/) |
 | [cohere2_moe_experts](../src/configs/registry/cohere2_moe_experts.py) | [Cohere2MoeExperts](https://github.com/huggingface/transformers/blob/main/src/transformers/models/cohere2_moe/modeling_cohere2_moe.py) (transformers, North Mini Code) | — | — | [cohere2_moe_experts](../src/kops/cohere2_moe_experts/) |
 | [cohere2_moe_experts_decode](../src/configs/registry/cohere2_moe_experts.py) | [Cohere2MoeExperts](https://github.com/huggingface/transformers/blob/main/src/transformers/models/cohere2_moe/modeling_cohere2_moe.py) at n_tokens=1 (decode) | — | — | [cohere2_moe_experts](../src/kops/cohere2_moe_experts/) (decode entry point) |
+| [deepseek_ocr2_moe_experts](../src/configs/registry/deepseek_ocr2_moe_experts.py) | [DeepseekOcr2TextExperts](https://github.com/huggingface/transformers/blob/main/src/transformers/models/deepseek_ocr2/modeling_deepseek_ocr2.py) (transformers, DeepSeek-OCR-2) | — | — | [deepseek_ocr2_moe_experts](../src/kops/deepseek_ocr2_moe_experts/) |
+| [deepseek_ocr2_moe_experts_decode](../src/configs/registry/deepseek_ocr2_moe_experts.py) | [DeepseekOcr2TextExperts](https://github.com/huggingface/transformers/blob/main/src/transformers/models/deepseek_ocr2/modeling_deepseek_ocr2.py) at n_tokens=1 (decode) | — | — | [deepseek_ocr2_moe_experts](../src/kops/deepseek_ocr2_moe_experts/) (decode entry point) |
 
 ## Latest results (GB10 / sm_121)
 
@@ -43,5 +45,7 @@ Speedups normalized to `op_eager` (the reference) = 1.00×; ✓ = verifies again
 | sam_decomposed_rel_pos | 1.00× | 0.99× ✓ | — | — | **23.4× ✓** | decomposed rel-pos attention bias; 23.6× vs op_compile |
 | cohere2_moe_experts | 1.00× | 1.01× ✓ | — | — | **2.13× ✓** | North Mini Code 128-expert top-8 grouped GEMM; 2.11× vs op_compile |
 | cohere2_moe_experts_decode | 1.00× | 0.98× ✓ | — | — | **3.50× ✓** | fused top-8 gather-GEMV at n_tokens=1; 3.58× vs op_compile, near the weight-traffic floor |
+| deepseek_ocr2_moe_experts | 1.00× | 0.96× ✓ | — | — | **2.17× ✓** | DeepSeek-OCR-2 64-expert top-6 grouped GEMM; 2.26× vs op_compile |
+| deepseek_ocr2_moe_experts_decode | 1.00× | 0.94× ✓ | — | — | **4.10× ✓** | fused top-6 gather-GEMV at n_tokens=1; 4.35× vs op_compile |
 
 References follow [setting up baselines](guide/setting_up_baselines.md): always a real library/Hub reference, never hand-written; the reference is only the op call, all prep in `inputs()`.

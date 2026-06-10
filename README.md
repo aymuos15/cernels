@@ -37,7 +37,8 @@ Engineering standards — the one-slug-per-kernel naming invariant, no dead code
 | rms_norm | 0.146 | 0.160 | - | - | 0.130 | - | 1.23x | ✓ |
 | roi_align | 0.086 | 0.106 | - | - | 0.077 | - | 1.39x | ✓ |
 | rotary_embedding | 3.032 | 0.619 | 1.207 | - | 0.585 | 0.51x | 1.06x | ✓ |
-| sam_decomposed_rel_pos | 4.869 | 4.907 | - | - | 0.208 | - | 23.58x | ✓ |
+| sam_decomposed_rel_pos | 4.857 | 4.896 | - | - | 0.070 | - | 69.62x | ✓ |
+| sam_decomposed_rel_pos_window_batch | 5.135 | 5.513 | - | - | 0.858 | - | 6.42x | ✓ |
 | silu_and_mul | 1.029 | 0.611 | - | - | 0.589 | - | 1.04x | ✓ |
 | gpt_oss_moe_experts | 22.071 | 20.070 | - | - | 15.818 | - | 1.27x | ✓ |
 | qwen3_next_moe_experts | 74.629 | 76.189 | - | - | 27.692 | - | 2.75x | ✓ |
@@ -45,6 +46,20 @@ Engineering standards — the one-slug-per-kernel naming invariant, no dead code
 | qwen3_next_gated_rmsnorm | 4.852 | 0.462 | - | - | 0.439 | - | 1.05x | ✓ |
 | cohere2_moe_experts | 21.269 | 21.085 | - | - | 9.990 | - | 2.11x | ✓ |
 | cohere2_moe_experts_decode | 1.194 | 1.222 | - | - | 0.341 | - | 3.58x | ✓ |
+| deepseek_ocr2_moe_experts | 9.253 | 9.610 | - | - | 4.261 | - | 2.26x | ✓ |
+| deepseek_ocr2_moe_experts_decode | 0.784 | 0.830 | - | - | 0.191 | - | 4.35x | ✓ |
+
+## Whole model — DeepSeek-OCR-2 (3.4B OCR VLM)
+
+[`deepseek-community/DeepSeek-OCR-2`](https://huggingface.co/deepseek-community/DeepSeek-OCR-2) (SAM ViT-B encoder + DeepSeek-V2-lite MoE decoder) with the `deepseek_ocr2_moe_experts` kernels swapped into every `DeepseekOcr2TextExperts`: `uv run --no-sync python -m modeling.main deepseek_ocr_2` on a rendered document image, greedy decode 128.
+
+| variant | prefill ms | decode tok/s | greedy match vs stock |
+|---|---|---|---|
+| stock (eager) | 315 | 86.2 | — |
+| custom: MoE kernels (prefill + decode) | 312 | **117.1 (1.36×)** | **64/64** |
+| custom_full: + SAM rel-pos (all layers) | **274 (1.15×)** | 117.0 | **64/64** |
+
+The MoE decode win carries through (the op-level 4.35× → 1.36× end-to-end at the decoder's 37.5% share); prefill is vision-dominated so the experts kernel barely moves it. `custom_full` adds the reworked `sam_decomposed_rel_pos` kernel into every SAM attention layer (windowed 14×14 and global 64×64 keys) and takes prefill to **274 ms — 1.15× vs stock**. The first version of that kernel was a negative result (407 ms): it won 23.6× at its op-benchmark shape (one 14×14 window, B=12, launch-bound eager reference) but recomputed the C=64 contraction per output element, losing in-model where window partitioning batches B≈600 per call and the stock einsums become efficient GEMMs. The rework computes each rel-pos dot once per query row (GEMM-equivalent traffic) and writes the SDPA `attn_mask` bias directly in one fused launch — it wins at both the op-benchmark shape (69.6× vs op_compile) and the in-model batch (6.4× at B=600, the `sam_decomposed_rel_pos_window_batch` config), so the shape gate now passes the global layers too.
 
 ## Whole model — North Mini Code (Cohere2Moe 30B-A3B)
 

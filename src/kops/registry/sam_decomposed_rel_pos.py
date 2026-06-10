@@ -1,10 +1,11 @@
 """SAM decomposed-rel-pos loader.
 
-The fusable core (the two einsums + broadcast bias add) runs in the CUDA op. The get_rel_pos
-interpolation+gather that produces Rh/Rw stays in Python here — and since this loader IS the
-timed `custom` callable, that work is still inside the timed path (it is not precomputed in
-inputs()). We reuse transformers' own `SamVisionAttention.get_rel_pos` so the interpolation is
-the real reference math, never hand-written.
+The fusable core (the two rel-pos contractions + broadcast bias add) runs in the CUDA op, one
+dot per query row. The get_rel_pos interpolation+gather that produces Rh/Rw stays in Python
+here — and since this loader IS the timed `custom` callable, that work is still inside the
+timed path (it is not precomputed in inputs()). We reuse transformers' own
+`SamVisionAttention.get_rel_pos` so the interpolation is the real reference math, never
+hand-written.
 """
 
 from typing import Any

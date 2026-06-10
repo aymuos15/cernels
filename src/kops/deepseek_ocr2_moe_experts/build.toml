@@ -1,0 +1,19 @@
+[general]
+name = "deepseek-ocr2-moe-experts"
+version = 1
+license = "Apache-2.0"
+backends = ["cuda"]
+
+[general.hub]
+repo-id = "aymuos15/deepseek-ocr2-moe-experts"
+
+[torch]
+src = [
+    "torch-ext/torch_binding.cpp",
+    "torch-ext/torch_binding.h",
+]
+
+[kernel.deepseek_ocr2_moe_experts]
+backend = "cuda"
+depends = ["torch"]
+src = ["csrc/deepseek_ocr2_moe_experts.cu"]

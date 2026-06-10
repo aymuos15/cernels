@@ -2,9 +2,13 @@
 
 Engineering standards (naming invariant, no dead code, comment discipline, structure) live in [RULES.md](RULES.md) — read it before changing code. This file is operational: where and how to run things.
 
-## Never run benchmarks or kernels on this machine — only on the Spark
+## Never run anything on this machine — only on the Spark
 
-All benchmarking, CUDA builds (`load_inline`), and kernel runs happen on the **Spark** (the GB10 / Grace-Blackwell box, `ssh spark`), never on the local machine. Transfer the repo with `scripts/transfer.sh spark`, then run over ssh:
+The local machine is **storage/editing only**. All benchmarking, CUDA builds (`load_inline`), kernel runs, **and tooling — linting (`prek`), profiling, ad-hoc python** — happen on the **Spark** (the GB10 / Grace-Blackwell box, `ssh spark`), never locally. Transfer the repo with `scripts/transfer.sh spark`, then run over ssh:
+
+```bash
+ssh spark 'bash -lc "cd ~/kernels && uv run --no-sync prek run --all-files"'   # lint on the Spark too
+```
 
 ```bash
 ssh spark 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main <name>"'

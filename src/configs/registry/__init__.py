@@ -2,6 +2,7 @@
 
 from configs.base import Config
 from configs.registry.cohere2_moe_experts import Cohere2MoeExperts, Cohere2MoeExpertsDecode
+from configs.registry.deepseek_ocr2_moe_experts import DeepseekOcr2MoeExperts, DeepseekOcr2MoeExpertsDecode
 from configs.registry.multi_scale_deformable_attention import MultiScaleDeformableAttention
 from configs.registry.gaussian_blur_2d import GaussianBlur2d
 from configs.registry.gpt_oss_moe_experts import GptOssMoeExperts
@@ -14,7 +15,7 @@ from configs.registry.qwen3_next_moe_experts import Qwen3NextMoeExperts
 from configs.registry.rms_norm import RmsNorm
 from configs.registry.roi_align import RoiAlign
 from configs.registry.rotary_embedding import RotaryEmbedding
-from configs.registry.sam_decomposed_rel_pos import SamDecomposedRelPos
+from configs.registry.sam_decomposed_rel_pos import SamDecomposedRelPos, SamDecomposedRelPosWindowBatch
 from configs.registry.silu_and_mul import SiluAndMul
 
 CONFIGS: dict[str, type[Config]] = {
@@ -23,6 +24,8 @@ CONFIGS: dict[str, type[Config]] = {
         RotaryEmbedding,
         Cohere2MoeExperts,
         Cohere2MoeExpertsDecode,
+        DeepseekOcr2MoeExperts,
+        DeepseekOcr2MoeExpertsDecode,
         NonMaximumSuppression,
         GaussianBlur2d,
         MegablocksMoe,
@@ -36,5 +39,6 @@ CONFIGS: dict[str, type[Config]] = {
         RmsNorm,
         SiluAndMul,
         SamDecomposedRelPos,
+        SamDecomposedRelPosWindowBatch,
     )
 }

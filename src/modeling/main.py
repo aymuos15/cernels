@@ -1,11 +1,11 @@
 """Benchmark a whole model stock vs kernelized: prefill latency + decode throughput.
 
 Usage: uv run --no-sync python -m modeling.main <model>   # <model> = a ModelProfile.name
-Variants: stock (eager), custom_prefill (grouped-GEMM experts kernel at prefill shapes only),
-custom (+ fused gather-GEMV at decode shapes). Before timing, every kernelized variant passes
-a correctness gate vs stock: greedy-token prefix match over GATE_TOKENS plus the max abs diff
-of the last prefill logits (reported, not gated — bf16 drift over 49 layers is expected).
-Writes analysis/<host>/model/<model>.json. Spark-only (see AGENTS.md).
+Variants come from the model's entry in modeling.swaps (stock first). Before timing, every
+kernelized variant passes a correctness gate vs stock: greedy-token prefix match over
+GATE_TOKENS plus the max abs diff of the last prefill logits (reported, not gated — bf16
+drift over many layers is expected). Writes analysis/<host>/model/<model>.json.
+Spark-only (see AGENTS.md).
 """
 
 import json
@@ -17,38 +17,12 @@ import torch
 from torch.utils.benchmark import Timer
 
 from benchmark.save import _machine
+from modeling.swaps import SWAPS
 from profiling.registry import MODELS
 
 DEVICE = "cuda"
 GATE_TOKENS = 64
 DECODE_TOKENS = 128
-DECODE_MAX_TOKENS = 4  # at or below this many tokens the decode entry point handles the op
-VARIANTS = ("stock", "custom_prefill", "custom")
-
-
-def kernelize(model, variant):
-    """Explicitly swap our CUDA ops into every Cohere2MoeExperts instance (or restore stock)."""
-    from kops.registry.cohere2_moe_experts import decode_kernel, kernel
-
-    n = 0
-    for mod in model.modules():
-        if type(mod).__name__ != "Cohere2MoeExperts":
-            continue
-        n += 1
-        if "forward" in vars(mod):
-            del mod.forward  # drop a previous swap: back to the class forward
-        if variant == "stock":
-            continue
-
-        def fwd(h, idx, w, _m=mod, _decode_too=variant == "custom"):
-            if h.size(0) <= DECODE_MAX_TOKENS:
-                return decode_kernel(h, idx, w, _m) if _decode_too else type(_m).forward(_m, h, idx, w)
-            return kernel(h, idx, w, _m)
-
-        mod.forward = fwd
-    if not n:
-        sys.exit("no Cohere2MoeExperts modules found — wrong model for this swap")
-    return n
 
 
 @torch.no_grad()
@@ -74,11 +48,12 @@ def time_generate_s(model, inputs, n, runs=3):
     return min(times)
 
 
-def run(model, inputs):
+def run(model, inputs, name):
+    apply, variants = SWAPS[name]
     results = {}
     ref_tokens = ref_logits = None
-    for variant in VARIANTS:
-        kernelize(model, variant)
+    for variant in variants:
+        apply(model, variant)
         tokens, logits = greedy(model, inputs, GATE_TOKENS), last_logits(model, inputs)
         if variant == "stock":
             ref_tokens, ref_logits = tokens, logits
@@ -106,7 +81,7 @@ def main(name):
     model, processor = prof.load(DEVICE)
     inputs = prof.inputs(processor, DEVICE)
     print(f"{name}: prefill {inputs['input_ids'].shape[1]} tokens, decode {DECODE_TOKENS}", file=sys.stderr)
-    results = run(model, inputs)
+    results = run(model, inputs, name)
     out = Path("analysis") / _machine()["host"] / "model"
     out.mkdir(parents=True, exist_ok=True)
     payload = {"model": name, "model_id": prof.model_id, "machine": _machine(), "variants": results}

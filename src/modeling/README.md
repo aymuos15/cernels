@@ -2,7 +2,7 @@
 
 Whole-model integration: swap the [kops](../kops/README.md) custom kernels into a real transformers model and benchmark it end-to-end against stock — the model-level complement to the per-op tables.
 
-`kernelize(model, variant)` does explicit per-instance swaps (no auto-discovery, no class patching): for every `Cohere2MoeExperts` module it assigns an instance `forward` that dispatches to the grouped-GEMM kernel at prefill shapes and (for the `custom` variant) the fused gather-GEMV at decode shapes (≤4 tokens); `stock` deletes the instance attribute, restoring the class forward. Models come from the [profiling registry](../profiling/README.md) (`ModelProfile.load`/`inputs`), so a model added for profiling is benchmarkable here for free.
+[`swaps.py`](swaps.py) holds one explicit swap function per model (no auto-discovery, no class patching): instance attributes dispatch to the kops kernels and `stock` deletes them, restoring the class methods. north_mini_code swaps the `Cohere2MoeExperts` forward (grouped GEMM at prefill shapes, fused gather-GEMV at ≤4 tokens); deepseek_ocr_2 swaps `DeepseekOcr2TextExperts` the same way and, in the `custom_full` variant, replaces the SAM attention's `get_decomposed_rel_pos` bias builder with the fused `sam_decomposed_rel_pos` op. Models come from the [profiling registry](../profiling/README.md) (`ModelProfile.load`/`inputs`), so a model added for profiling is benchmarkable here for free.
 
 ```bash
 ssh <spark> 'bash -lc "cd ~/kernels && uv run --no-sync python -m modeling.main north_mini_code"'

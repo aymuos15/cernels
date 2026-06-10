@@ -68,3 +68,28 @@ class SamDecomposedRelPos(Config):
         # by the same 0.031). A relative bar (rtol 2e-3 -> ~0.11 at 57) honestly absorbs that
         # rounding while staying tight; the small atol covers values near zero.
         return bool(torch.allclose(out.float(), ref.float(), atol=2e-2, rtol=2e-3))
+
+
+class SamDecomposedRelPosWindowBatch(SamDecomposedRelPos):
+    """In-model shape twin (.issues/kernel/10): DeepSeek-OCR-2 window-partitioned batch.
+
+    Same op contract and reference; only the shape and dtype change to what the SAM encoder
+    actually passes per windowed layer — ~25 windows x 12 heads x 2 encoder views batched into
+    B ~ 600, window 14, bf16. Here the eager einsums are efficient batched GEMMs, so this config
+    is the honest bar for the model-level swap (the small-B config above is launch-bound).
+    Second config over the same sam_decomposed_rel_pos kops repo (the cohere2_moe_experts /
+    cohere2_moe_experts_decode precedent).
+    """
+
+    name = "sam_decomposed_rel_pos_window_batch"
+    dtype = torch.bfloat16
+    _NH = 600  # 25 windows * 12 heads * 2 views
+
+    def verify(self, out, ref) -> bool:
+        # The bf16 eager reference rounds rel_h and rel_w (magnitude up to ~46, where one bf16
+        # ULP is 0.25) to bf16 BEFORE the broadcast add, so it carries an absolute error floor
+        # of ~1 ULP at the addend scale regardless of the output value — measured: eager is
+        # 0.43 from the fp32 ground truth, the fp32-accumulating kernel 0.22, and the needed
+        # atol vs eager 0.14. atol 0.25 (one addend-scale ULP) + rtol 1e-2 covers exactly that
+        # rounding; a layout bug produces O(10) errors and still fails.
+        return bool(torch.allclose(out.float(), ref.float(), atol=2.5e-1, rtol=1e-2))
