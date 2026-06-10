@@ -16,6 +16,7 @@ echo "HF_TOKEN=hf_..." > secrets.env
 ssh spark 'bash -lc "cd ~/kernels && uv run --no-sync python -m benchmark.main sam_decomposed_rel_pos"'
 rsync spark:kernels/analysis/ analysis/        # pull results back
 uv run --no-sync python -m benchmark.view          # summarize (local ok)
+uv run --no-sync python -m modeling.view           # whole-model results (local ok)
 ```
 
 Runs offline from the HF cache; `HF_TOKEN` is auto-loaded from `secrets.env`. Add `HF_HUB_OFFLINE=0` to fetch an uncached kernel. To add one, follow [`skills/implement-kernel`](skills/implement-kernel/SKILL.md).
